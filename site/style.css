@@ -1,4 +1,17 @@
 
+@import "tailwindcss";
+
+@theme {
+  --color-offwhite: #F4F0E6;
+  --color-graphite: #2A2A2A;
+  --color-mustard: #C8A03E;
+  --color-bluepurple: #5247A0;
+  --color-darkbg: #0E0D12;
+  --color-darkpanel: #15141C;
+  --font-aicon: "Aicon", Impact, sans-serif;
+  --font-body: "Space Grotesk", sans-serif;
+}
+
 @font-face {
     font-family: 'Aicon';
     src: url('Aicon.ttf') format('truetype'),

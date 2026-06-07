@@ -1,5 +1,7 @@
 // ── CMS CONTROL DECK CORE LOGIC ─────────────────────────
 
+import './style.css';
+
 const DEFAULTS = {
     branding: {
         logoHoverText: "Insert Logo",
