@@ -1,30 +1,18 @@
 import './style.css';
 
-const CMS_API_URL = window.__CMS_API_URL__ || '';
-
-function getPublishConfig() {
-    try {
-        const raw = localStorage.getItem('quaestorPublishConfig');
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch { return null; }
-}
-
 async function loadRemoteConfig() {
-    const cfg = getPublishConfig();
-    const baseUrl = (cfg && cfg.apiUrl) || CMS_API_URL;
-    if (!baseUrl) return null;
     try {
-        const res = await fetch(baseUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
+        const res = await fetch('./cms-config.json', { cache: 'no-store' });
         if (!res.ok) return null;
         const data = await res.json();
-        return data.config || null;
+        return data.config || data || null;
     } catch { return null; }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     // ── CMS HYDRATION ENGINE ─────────────────────────────
-    // Reads saved config from localStorage, merged with remote config from API if configured
+    // Fetches published config from cms-config.json (same origin).
+    // Falls back to localStorage for local-only edits.
     await (async function hydrateCMSData() {
         let data = null;
         try {

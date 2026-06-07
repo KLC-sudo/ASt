@@ -149,6 +149,26 @@ function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
+// Deep merge helper (source overrides target)
+function merge(target, source) {
+    for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key]) target[key] = {};
+            merge(target[key], source[key]);
+        } else if (Array.isArray(source[key])) {
+            target[key] = source[key].map((item, idx) => {
+                if (item && typeof item === 'object') {
+                    return merge(deepClone(target[key]?.[idx] || {}), item);
+                }
+                return item;
+            });
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
+}
+
 // Canvas-based image resizer and compressor to prevent LocalStorage overflows
 function compressAndConvertImage(file, maxDimension = 600, quality = 0.75) {
     return new Promise((resolve, reject) => {
@@ -196,24 +216,6 @@ function initConfig() {
         try {
             const parsed = JSON.parse(raw);
             stagedConfig = deepClone(DEFAULTS);
-            const merge = (target, source) => {
-                for (const key in source) {
-                    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                        if (!target[key]) target[key] = {};
-                        merge(target[key], source[key]);
-                    } else if (Array.isArray(source[key])) {
-                        target[key] = source[key].map((item, idx) => {
-                            if (item && typeof item === 'object') {
-                                return merge(deepClone(target[key]?.[idx] || {}), item);
-                            }
-                            return item;
-                        });
-                    } else {
-                        target[key] = source[key];
-                    }
-                }
-                return target;
-            };
             merge(stagedConfig, parsed);
         } catch (e) {
             console.error('[CMS] Failed to parse existing local configuration, resetting to defaults.', e);
@@ -369,102 +371,68 @@ function renderTicketingTab() {
     appendPublishPanel();
 }
 
-// Shared publish-to-API panel injected at the bottom of the tab
+// Shared publish panel injected at the bottom of the ticketing tab
 function appendPublishPanel() {
     const container = document.getElementById('fields-container');
     if (!container) return;
     const existing = document.getElementById('publish-panel');
     if (existing) existing.remove();
 
-    const pubCfg = (() => {
-        try { return JSON.parse(localStorage.getItem('quaestorPublishConfig') || 'null') || {}; }
-        catch { return {}; }
-    })();
-
     const panel = document.createElement('div');
     panel.id = 'publish-panel';
     panel.className = 'glass-card rounded-xl p-5 mb-6 border border-dashed border-white/10';
     panel.innerHTML = `
         <h3 class="text-xs font-semibold tracking-[0.2em] uppercase text-mustard/80 mb-3 border-b border-white/5 pb-2">
-            Publish to API (Global Sync)
+            Publish Globally
         </h3>
         <p class="text-[11px] text-white/45 mb-4 leading-relaxed">
-            Without this, changes stay on this browser only. Set your API URL and publish key, then click "Publish to API" to push all CMS fields to the database. The public site will fetch this config on every page load.
+            Changes saved here only affect this browser. To push edits to all visitors, download <code class="text-mustard/80">cms-config.json</code>, drop it into your site's <code class="text-mustard/80">public/</code> folder, and redeploy.
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">API Base URL</label>
-                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || '').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="https://api.your-domain.com">
-            </div>
-            <div class="flex flex-col gap-2">
-                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Publish Key</label>
-                <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="CMS_PUBLISH_SECRET value">
-            </div>
-        </div>
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center">
-            <button type="button" id="btn-publish" class="px-5 py-3 rounded-xl bg-mustard text-graphite text-xs font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all">
-                Publish to API
+        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <button type="button" id="btn-publish-global" class="px-5 py-3 rounded-xl bg-mustard text-graphite text-xs font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                Download cms-config.json
             </button>
-            <button type="button" id="btn-fetch-remote" class="px-5 py-3 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs font-semibold uppercase tracking-wider hover:bg-white/10 transition-all">
-                Fetch Latest from API
+            <button type="button" id="btn-fetch-remote" class="px-5 py-3 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                Fetch Latest from Server
             </button>
             <span id="publish-status" class="text-[11px] text-white/40"></span>
         </div>
     `;
     container.appendChild(panel);
 
-    document.getElementById('btn-publish').addEventListener('click', async () => {
-        const apiUrl = document.getElementById('publish-api-url').value.trim();
-        const publishKey = document.getElementById('publish-key').value;
-        const status = document.getElementById('publish-status');
-        if (!apiUrl || !publishKey) {
-            status.textContent = 'Both API URL and Publish Key required.';
-            status.className = 'text-[11px] text-red-400';
-            return;
-        }
-        localStorage.setItem('quaestorPublishConfig', JSON.stringify({ apiUrl, publishKey }));
-        status.textContent = 'Publishing…';
-        status.className = 'text-[11px] text-white/40';
+    document.getElementById('btn-publish-global').addEventListener('click', () => {
         try {
-            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config/publish', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-publish-key': publishKey },
-                body: JSON.stringify({ config: stagedConfig }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Publish failed');
-            status.textContent = `Published ${data.count} fields successfully.`;
-            status.className = 'text-[11px] text-green-400';
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ config: stagedConfig }, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "cms-config.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("cms-config.json exported! Drop into public/ and redeploy.", "📤");
         } catch (err) {
-            status.textContent = err.message;
-            status.className = 'text-[11px] text-red-400';
+            showToast("Failed to export config.", "⚠️");
         }
     });
 
     document.getElementById('btn-fetch-remote').addEventListener('click', async () => {
-        const apiUrl = document.getElementById('publish-api-url').value.trim();
         const status = document.getElementById('publish-status');
-        if (!apiUrl) { status.textContent = 'API URL required.'; status.className = 'text-[11px] text-red-400'; return; }
         status.textContent = 'Fetching…';
         status.className = 'text-[11px] text-white/40';
         try {
-            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
+            const res = await fetch('./cms-config.json', { cache: 'no-store' });
             const data = await res.json();
-            if (!res.ok || !data.config) throw new Error('No config found');
-            for (const key in data.config) {
-                const path = key.split('.');
-                let cursor = stagedConfig;
-                for (let i = 0; i < path.length - 1; i++) {
-                    if (cursor[path[i]] == null) cursor[path[i]] = {};
-                    cursor = cursor[path[i]];
-                }
-                cursor[path[path.length - 1]] = data.config[key];
-            }
+            const remote = data.config || data;
+            if (!remote || typeof remote !== 'object') throw new Error('No config found');
+            stagedConfig = deepClone(DEFAULTS);
+            merge(stagedConfig, remote);
             renderTabFields();
-            status.textContent = 'Fetched and merged. Click "Save & Apply Changes" to keep locally.';
+            status.textContent = 'Fetched. Click "Save & Apply" to keep locally.';
             status.className = 'text-[11px] text-green-400';
         } catch (err) {
-            status.textContent = err.message;
+            status.textContent = err.message || 'No cms-config.json found on server.';
             status.className = 'text-[11px] text-red-400';
         }
     });
@@ -1157,21 +1125,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Export Config Action
+    // Export Config Action — downloads cms-config.json for global deployment
     const btnExport = document.getElementById('btn-export');
     if (btnExport) {
         btnExport.addEventListener('click', function(e) {
             e.preventDefault();
             
             try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stagedConfig, null, 4));
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ config: stagedConfig }, null, 4));
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", "album-studies-cms.json");
+                downloadAnchor.setAttribute("download", "cms-config.json");
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
                 downloadAnchor.remove();
-                showToast("Config JSON file exported successfully!", "📤");
+                showToast("cms-config.json exported! Drop into public/ and redeploy.", "📤");
             } catch (err) {
                 console.error('[CMS] Export failed:', err);
                 showToast("Failed to compile export file.", "⚠️");
