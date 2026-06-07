@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { handleCorsPreFlight, withCors } from '@/lib/cors';
+
+export const dynamic = 'force-dynamic';
 
 const publishSecret = process.env.CMS_PUBLISH_SECRET;
 
@@ -8,33 +11,48 @@ const bodySchema = z.object({
   config: z.record(z.string(), z.unknown()),
 });
 
-export async function PUT(req: NextRequest) {
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function jsonWithCors(request: NextRequest, body: unknown, init?: ResponseInit) {
+  return withCors(request, NextResponse.json(body, init));
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsPreFlight(request);
+}
+
+export async function PUT(request: NextRequest) {
   if (!publishSecret) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       { error: 'CMS_PUBLISH_SECRET is not configured on the server.' },
       { status: 503 },
     );
   }
 
-  const provided = req.headers.get('x-publish-key');
-  if (!provided || provided.length !== publishSecret.length) {
-    return NextResponse.json({ error: 'Invalid publish key.' }, { status: 401 });
-  }
-  let diff = 0;
-  for (let i = 0; i < provided.length; i++) diff |= provided.charCodeAt(i) ^ publishSecret.charCodeAt(i);
-  if (diff !== 0) {
-    return NextResponse.json({ error: 'Invalid publish key.' }, { status: 401 });
+  const provided = request.headers.get('x-publish-key');
+  if (!provided || !constantTimeEqual(provided, publishSecret)) {
+    return jsonWithCors(request, { error: 'Invalid publish key.' }, { status: 401 });
   }
 
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    return jsonWithCors(request, { error: 'Invalid JSON body.' }, { status: 400 });
   }
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+    return jsonWithCors(
+      request,
+      { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+      { status: 400 },
+    );
   }
 
   const entries = Object.entries(parsed.data.config);
@@ -48,5 +66,5 @@ export async function PUT(req: NextRequest) {
     ),
   );
 
-  return NextResponse.json({ ok: true, count: entries.length });
+  return jsonWithCors(request, { ok: true, count: entries.length });
 }
