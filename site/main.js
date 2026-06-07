@@ -1,65 +1,92 @@
 import './style.css';
 
-document.addEventListener('DOMContentLoaded', () => {
+const PUBLISH_CONFIG_KEY = 'quaestorPublishConfig';
+
+function getPublishConfig() {
+    try {
+        const raw = localStorage.getItem(PUBLISH_CONFIG_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch { return null; }
+}
+
+async function loadRemoteConfig() {
+    const cfg = getPublishConfig();
+    if (!cfg || !cfg.apiUrl) return null;
+    try {
+        const res = await fetch(cfg.apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.config || null;
+    } catch { return null; }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     // ── CMS HYDRATION ENGINE ─────────────────────────────
-    // Reads saved config from localStorage and overwrites matching data-cms elements
-    (function hydrateCMSData() {
-        const raw = localStorage.getItem('albumStudiesCMSData');
-        if (!raw) return;
+    // Reads saved config from localStorage, merged with remote config from API if configured
+    await (async function hydrateCMSData() {
+        let data = null;
         try {
-            const data = JSON.parse(raw);
-            const getVal = (obj, path) =>
-                path.split('.').reduce((acc, key) => {
-                    if (acc == null) return undefined;
-                    // Support array-index notation like "items.0.title"
-                    return acc[isNaN(key) ? key : Number(key)];
-                }, obj);
+            const raw = localStorage.getItem('albumStudiesCMSData');
+            if (raw) data = JSON.parse(raw);
+        } catch {}
 
-            document.querySelectorAll('[data-cms]').forEach(el => {
-                const val = getVal(data, el.getAttribute('data-cms'));
-                if (val !== undefined && val !== null && val !== '') {
-                    el.innerHTML = val;
-                }
-            });
+        const remote = await loadRemoteConfig();
+        if (remote && typeof remote === 'object') {
+            data = { ...(remote || {}), ...(data || {}) };
+        }
 
-            document.querySelectorAll('[data-cms-href]').forEach(el => {
-                const val = getVal(data, el.getAttribute('data-cms-href'));
-                if (val !== undefined && val !== null && val !== '') {
-                    el.setAttribute('href', val);
-                }
-            });
+        if (!data) return;
+        const getVal = (obj, path) =>
+            path.split('.').reduce((acc, key) => {
+                if (acc == null) return undefined;
+                return acc[isNaN(key) ? key : Number(key)];
+            }, obj);
 
-            // ── LOGO HEADER IMAGE HYDRATION ──
-            if (data.branding && data.branding.logoImage) {
-                const placeholder = document.querySelector('[data-cms-logo-placeholder]');
-                const wrapper = document.querySelector('[data-cms-logo-img-wrapper]');
-                const img = document.querySelector('[data-cms-logo-img]');
-                const container = document.querySelector('[data-cms-logo-container]');
-                if (placeholder && wrapper && img) {
-                    placeholder.classList.add('hidden');
-                    wrapper.classList.remove('hidden');
-                    img.src = data.branding.logoImage;
-                }
-                if (container && data.branding.logoSize) {
-                    container.style.width = data.branding.logoSize + 'px';
-                    container.style.height = data.branding.logoSize + 'px';
-                }
+        document.querySelectorAll('[data-cms]').forEach(el => {
+            const val = getVal(data, el.getAttribute('data-cms'));
+            if (val !== undefined && val !== null && val !== '') {
+                el.innerHTML = val;
             }
+        });
 
-            // ── FLIPBOOK SLIDE & CARD REBUILDER ──
-            if (data.gallery && data.gallery.cards) {
-                const cardsContainer = document.getElementById('gallery-cards-container');
-                if (cardsContainer) {
-                    // Clear all existing cards
-                    cardsContainer.innerHTML = '';
-                    
-                    data.gallery.cards.forEach((cardData, idx) => {
-                        const cardEl = document.createElement('div');
-                        cardEl.className = `gallery-card group cursor-default reveal`;
-                        cardEl.setAttribute('data-study', idx + 1);
-                        cardEl.style.transitionDelay = `${idx * 0.1}s`;
-                        
-                        cardEl.innerHTML = `
+        document.querySelectorAll('[data-cms-href]').forEach(el => {
+            const val = getVal(data, el.getAttribute('data-cms-href'));
+            if (val !== undefined && val !== null && val !== '') {
+                el.setAttribute('href', val);
+            }
+        });
+
+        // ── LOGO HEADER IMAGE HYDRATION ──
+        if (data.branding && data.branding.logoImage) {
+            const placeholder = document.querySelector('[data-cms-logo-placeholder]');
+            const wrapper = document.querySelector('[data-cms-logo-img-wrapper]');
+            const img = document.querySelector('[data-cms-logo-img]');
+            const container = document.querySelector('[data-cms-logo-container]');
+            if (placeholder && wrapper && img) {
+                placeholder.classList.add('hidden');
+                wrapper.classList.remove('hidden');
+                img.src = data.branding.logoImage;
+            }
+            if (container && data.branding.logoSize) {
+                container.style.width = data.branding.logoSize + 'px';
+                container.style.height = data.branding.logoSize + 'px';
+            }
+        }
+
+        // ── FLIPBOOK SLIDE & CARD REBUILDER ──
+        if (data.gallery && data.gallery.cards) {
+            const cardsContainer = document.getElementById('gallery-cards-container');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = '';
+
+                data.gallery.cards.forEach((cardData, idx) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `gallery-card group cursor-default reveal`;
+                    cardEl.setAttribute('data-study', idx + 1);
+                    cardEl.style.transitionDelay = `${idx * 0.1}s`;
+
+                    cardEl.innerHTML = `
                             <div class="gallery-image-container aspect-[4/5] bg-graphite/5 rounded-2xl overflow-hidden relative shadow-[0_4px_30px_rgba(0,0,0,0.03)] border border-graphite/[0.06] transition-all duration-500 group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] group-hover:scale-[1.01]">
                                 <!-- Slides will be inserted dynamically -->
                             </div>
@@ -122,14 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 slidesContainer.appendChild(slideEl);
                             });
                         }
-                        
+
                         cardsContainer.appendChild(cardEl);
                     });
                 }
             }
-        } catch (e) {
-            console.warn('[CMS] Hydration parse error:', e);
-        }
     })();
 
     // Scroll reveal intersections observer

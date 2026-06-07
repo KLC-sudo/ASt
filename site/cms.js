@@ -96,6 +96,19 @@ const DEFAULTS = {
         buttonText: "Join",
         successToast: "Thank you — you're part of the movement now."
     },
+    ticketing: {
+        currencyCode: "UGX",
+        currencySymbol: "UGX",
+        merchantCode: "XXXX",
+        altNumber: "+0000000000",
+        supportPhone: "+0000000000",
+        whatsappTemplate: "Hello, I have paid for my Quaestor Favillae ticket. Order ref: {ref}. Amount: {amount}.",
+        nextEventTitle: "",
+        nextEventDate: "",
+        nextEventVenue: "",
+        nextEventDescription: "",
+        nextEventCtaText: "Get Tickets"
+    },
     footer: {
         copyright: "© 2026 Quaestor Favillae. All rights reserved."
     }
@@ -308,8 +321,152 @@ const TABS_SCHEMA = {
                 ]
             }
         ]
+    },
+    ticketing: {
+        title: "Ticketing Integration",
+        description: "Connect the marketing site to the ticketing API and customize the payment instructions shown to customers.",
+        groups: [
+            {
+                name: "Currency",
+                fields: [
+                    { path: "ticketing.currencyCode", label: "Currency Code (e.g. UGX, USD, KES)", type: "text" },
+                    { path: "ticketing.currencySymbol", label: "Currency Symbol or Prefix (e.g. UGX, $)", type: "text" }
+                ]
+            },
+            {
+                name: "Payment Providers",
+                fields: [
+                    { path: "ticketing.merchantCode", label: "Primary Provider Merchant Code (dial *XXXX#)", type: "text" },
+                    { path: "ticketing.altNumber", label: "Alternative Provider Number (e.g. Airtel)", type: "text" }
+                ]
+            },
+            {
+                name: "Customer Support",
+                fields: [
+                    { path: "ticketing.supportPhone", label: "WhatsApp Support Phone (with country code, e.g. +256700000000)", type: "text" },
+                    { path: "ticketing.whatsappTemplate", label: "WhatsApp 'I have paid' Message Template. Use {ref} and {amount} as placeholders.", type: "textarea", rows: 3 }
+                ]
+            },
+            {
+                name: "Next Event Showcase (optional — appears above the CTA section)",
+                fields: [
+                    { path: "ticketing.nextEventTitle", label: "Event Title", type: "text" },
+                    { path: "ticketing.nextEventDate", label: "Event Date & Time (e.g. Fri 14 Nov · 8:00 PM)", type: "text" },
+                    { path: "ticketing.nextEventVenue", label: "Event Venue", type: "text" },
+                    { path: "ticketing.nextEventDescription", label: "Event Description (1–2 sentences)", type: "textarea", rows: 2 },
+                    { path: "ticketing.nextEventCtaText", label: "CTA Button Text", type: "text" }
+                ]
+            }
+        ]
     }
 };
+
+// ── RENDERER: TICKETING TAB ──
+function renderTicketingTab() {
+    renderGenericTab();
+    appendPublishPanel();
+}
+
+// Shared publish-to-API panel injected at the bottom of the tab
+function appendPublishPanel() {
+    const container = document.getElementById('fields-container');
+    if (!container) return;
+    const existing = document.getElementById('publish-panel');
+    if (existing) existing.remove();
+
+    const pubCfg = (() => {
+        try { return JSON.parse(localStorage.getItem('quaestorPublishConfig') || 'null') || {}; }
+        catch { return {}; }
+    })();
+
+    const panel = document.createElement('div');
+    panel.id = 'publish-panel';
+    panel.className = 'glass-card rounded-xl p-5 mb-6 border border-dashed border-white/10';
+    panel.innerHTML = `
+        <h3 class="text-xs font-semibold tracking-[0.2em] uppercase text-mustard/80 mb-3 border-b border-white/5 pb-2">
+            Publish to API (Global Sync)
+        </h3>
+        <p class="text-[11px] text-white/45 mb-4 leading-relaxed">
+            Without this, changes stay on this browser only. Set your API URL and publish key, then click "Publish to API" to push all CMS fields to the database. The public site will fetch this config on every page load.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">API Base URL</label>
+                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || '').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="https://api.your-domain.com">
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Publish Key</label>
+                <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="CMS_PUBLISH_SECRET value">
+            </div>
+        </div>
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+            <button type="button" id="btn-publish" class="px-5 py-3 rounded-xl bg-mustard text-graphite text-xs font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all">
+                Publish to API
+            </button>
+            <button type="button" id="btn-fetch-remote" class="px-5 py-3 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs font-semibold uppercase tracking-wider hover:bg-white/10 transition-all">
+                Fetch Latest from API
+            </button>
+            <span id="publish-status" class="text-[11px] text-white/40"></span>
+        </div>
+    `;
+    container.appendChild(panel);
+
+    document.getElementById('btn-publish').addEventListener('click', async () => {
+        const apiUrl = document.getElementById('publish-api-url').value.trim();
+        const publishKey = document.getElementById('publish-key').value;
+        const status = document.getElementById('publish-status');
+        if (!apiUrl || !publishKey) {
+            status.textContent = 'Both API URL and Publish Key required.';
+            status.className = 'text-[11px] text-red-400';
+            return;
+        }
+        localStorage.setItem('quaestorPublishConfig', JSON.stringify({ apiUrl, publishKey }));
+        status.textContent = 'Publishing…';
+        status.className = 'text-[11px] text-white/40';
+        try {
+            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config/publish', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-publish-key': publishKey },
+                body: JSON.stringify({ config: stagedConfig }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Publish failed');
+            status.textContent = `Published ${data.count} fields successfully.`;
+            status.className = 'text-[11px] text-green-400';
+        } catch (err) {
+            status.textContent = err.message;
+            status.className = 'text-[11px] text-red-400';
+        }
+    });
+
+    document.getElementById('btn-fetch-remote').addEventListener('click', async () => {
+        const apiUrl = document.getElementById('publish-api-url').value.trim();
+        const status = document.getElementById('publish-status');
+        if (!apiUrl) { status.textContent = 'API URL required.'; status.className = 'text-[11px] text-red-400'; return; }
+        status.textContent = 'Fetching…';
+        status.className = 'text-[11px] text-white/40';
+        try {
+            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
+            const data = await res.json();
+            if (!res.ok || !data.config) throw new Error('No config found');
+            for (const key in data.config) {
+                const path = key.split('.');
+                let cursor = stagedConfig;
+                for (let i = 0; i < path.length - 1; i++) {
+                    if (cursor[path[i]] == null) cursor[path[i]] = {};
+                    cursor = cursor[path[i]];
+                }
+                cursor[path[path.length - 1]] = data.config[key];
+            }
+            renderTabFields();
+            status.textContent = 'Fetched and merged. Click "Save & Apply Changes" to keep locally.';
+            status.className = 'text-[11px] text-green-400';
+        } catch (err) {
+            status.textContent = err.message;
+            status.className = 'text-[11px] text-red-400';
+        }
+    });
+}
 
 // Render tab fields (routing between custom rich editors and generic inputs)
 function renderTabFields() {
@@ -317,6 +474,8 @@ function renderTabFields() {
         renderBrandingTab();
     } else if (activeTab === 'gallery') {
         renderGalleryTab();
+    } else if (activeTab === 'ticketing') {
+        renderTicketingTab();
     } else {
         renderGenericTab();
     }
