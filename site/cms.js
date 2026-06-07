@@ -6,9 +6,13 @@ const DEFAULTS = {
         logoImage: "",
         logoSize: 48
     },
+    header: {
+        ctaText: "Get Tickets",
+        ctaUrl: "https://your-api.example.com/events"
+    },
     hero: {
-        titleLine1: "ALBUM",
-        titleLine2: "STUDIES",
+        titleLine1: "QUAESTOR",
+        titleLine2: "FAVILLAE",
         subtitle: "Music as a living, breathing art form",
         scrollText: "Scroll"
     },
@@ -211,6 +215,13 @@ const TABS_SCHEMA = {
         title: "Hero & Orbit Showcase",
         description: "Modify the large 3D wordmark, typography labels, and indicator actions.",
         groups: [
+            {
+                name: "Header Call-to-Action",
+                fields: [
+                    { path: "header.ctaText", label: "Header Button Text (e.g. 'Get Tickets')", type: "text" },
+                    { path: "header.ctaUrl", label: "Header Button URL (link to your API/events service)", type: "text" }
+                ]
+            },
             {
                 name: "3D Wordmark Typography",
                 fields: [

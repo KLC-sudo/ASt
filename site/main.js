@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            document.querySelectorAll('[data-cms-href]').forEach(el => {
+                const val = getVal(data, el.getAttribute('data-cms-href'));
+                if (val !== undefined && val !== null && val !== '') {
+                    el.setAttribute('href', val);
+                }
+            });
+
             // ── LOGO HEADER IMAGE HYDRATION ──
             if (data.branding && data.branding.logoImage) {
                 const placeholder = document.querySelector('[data-cms-logo-placeholder]');
