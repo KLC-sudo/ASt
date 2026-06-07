@@ -1,10 +1,10 @@
 import './style.css';
 
-const PUBLISH_CONFIG_KEY = 'quaestorPublishConfig';
+const CMS_API_URL = window.__CMS_API_URL__ || '';
 
 function getPublishConfig() {
     try {
-        const raw = localStorage.getItem(PUBLISH_CONFIG_KEY);
+        const raw = localStorage.getItem('quaestorPublishConfig');
         if (!raw) return null;
         return JSON.parse(raw);
     } catch { return null; }
@@ -12,9 +12,10 @@ function getPublishConfig() {
 
 async function loadRemoteConfig() {
     const cfg = getPublishConfig();
-    if (!cfg || !cfg.apiUrl) return null;
+    const baseUrl = (cfg && cfg.apiUrl) || CMS_API_URL;
+    if (!baseUrl) return null;
     try {
-        const res = await fetch(cfg.apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
+        const res = await fetch(baseUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
         if (!res.ok) return null;
         const data = await res.json();
         return data.config || null;
@@ -33,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const remote = await loadRemoteConfig();
         if (remote && typeof remote === 'object') {
-            data = { ...(remote || {}), ...(data || {}) };
+            data = remote;
         }
 
         if (!data) return;
@@ -283,14 +284,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         mobileObserver.observe(card);
-        
-        // Clean up or handle window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) {
-                stopAndResetSlideshow();
-            } else {
-                stopAndResetSlideshow();
-            }
-        });
     });
 });
