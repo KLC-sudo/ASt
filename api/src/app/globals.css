@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #0E0D12;
+    color: #F4F0E6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: #5247A0; color: #F4F0E6; }
+}
+
+@layer components {
+  .glass-panel {
+    background: rgba(21, 20, 28, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(244, 240, 230, 0.06);
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(244, 240, 230, 0.04);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .glass-card:focus-within {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(82, 71, 160, 0.4);
+  }
+  .custom-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(244, 240, 230, 0.08);
+    color: #F4F0E6;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .custom-input:focus {
+    border-color: #5247A0;
+    box-shadow: 0 0 0 3px rgba(82, 71, 160, 0.2);
+    outline: none;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl bg-bluepurple text-offwhite font-semibold tracking-wider hover:bg-bluepurple/80 transition-all text-sm uppercase;
+  }
+  .btn-ghost {
+    @apply px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 transition-all text-sm;
+  }
+  .btn-danger {
+    @apply px-4 py-2 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-sm;
+  }
+}

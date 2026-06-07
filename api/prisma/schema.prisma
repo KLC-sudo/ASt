@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SOLD_OUT
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  MTN_MOMO
+  AIRTEL_MONEY
+}
+
+enum WebhookResult {
+  MATCHED
+  DUPLICATE
+  AMOUNT_MISMATCH
+  PARSE_FAILED
+  ORDER_NOT_FOUND
+  ALREADY_PROCESSED
+}
+
+enum WebhookLogStatus {
+  SUCCESS
+  ERROR
+  IGNORED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  name           String?
+  role           AdminRole @default(STAFF)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  emailLogs      EmailLog[]
+}
+
+model Event {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  title           String
+  description     String
+  venue           String
+  startsAt        DateTime
+  endsAt          DateTime
+  capacity        Int
+  status          EventStatus @default(DRAFT)
+  mtnMerchantCode String?
+  airtelNumber    String?
+  coverImage      String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  tiers           TicketTier[]
+}
+
+model TicketTier {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  priceUGX  Int
+  capacity  Int
+  sold      Int      @default(0)
+  sortOrder Int      @default(0)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
+  @@index([eventId])
+}
+
+model Order {
+  id              String         @id @default(cuid())
+  reference       String         @unique
+  tierId          String
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  quantity        Int
+  amountUGX       Int
+  status          OrderStatus    @default(PENDING)
+  paymentProvider PaymentProvider?
+  paymentTxId     String?
+  ipAddress       String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  paidAt          DateTime?
+  updatedAt       DateTime       @updatedAt
+  tier            TicketTier     @relation(fields: [tierId], references: [id])
+  tickets         Ticket[]
+  emailLogs       EmailLog[]
+  webhookEvents   WebhookEvent[]
+
+  @@index([status])
+  @@index([tierId])
+  @@index([createdAt])
+}
+
+model Ticket {
+  id           String   @id @default(cuid())
+  orderId      String
+  code         String   @unique
+  qrPayload    String
+  attendeeName String?
+  checkedInAt  DateTime?
+  createdAt    DateTime @default(now())
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model WebhookEvent {
+  id              String         @id @default(cuid())
+  payloadHash     String         @unique
+  rawPayload      Json
+  signature       String?
+  sourceIp        String?
+  fromAddress     String?
+  smsText         String?
+  result          WebhookResult
+  error           String?
+  matchedOrderId  String?
+  processedAt     DateTime       @default(now())
+  order           Order?         @relation(fields: [matchedOrderId], references: [id])
+
+  @@index([result])
+  @@index([processedAt])
+}
+
+model WebhookLog {
+  id          String           @id @default(cuid())
+  receivedAt  DateTime         @default(now())
+  sourceIp    String?
+  status      WebhookLogStatus
+  message     String
+  payloadHash String?
+
+  @@index([receivedAt])
+  @@index([status])
+}
+
+model EmailLog {
+  id         String      @id @default(cuid())
+  orderId    String?
+  adminId    String?
+  recipient  String
+  subject    String
+  status     EmailStatus
+  providerId String?
+  error      String?
+  sentAt     DateTime    @default(now())
+  order      Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  admin      AdminUser?  @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([sentAt])
+}
+
+model SiteConfig {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
