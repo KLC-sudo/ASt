@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </div>
             </div>
             <div>
-              <h1 className="text-base font-semibold tracking-wider text-offwhite uppercase">Album Studies</h1>
+              <h1 className="text-base font-semibold tracking-wider text-offwhite uppercase">Quaestor Favillae</h1>
               <p className="text-[10px] tracking-[0.2em] uppercase text-white/40">Admin Control Deck</p>
             </div>
           </Link>

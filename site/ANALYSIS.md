@@ -1,14 +1,14 @@
-# Codebase Analysis: Album Studies
+# Codebase Analysis: Quaestor Favillae
 
 ## Overview
-Static marketing site + browser-based CMS for "Album Studies" (a music/culture community concept). Vanilla JS + Vite + Tailwind.
+Static marketing site + browser-based CMS for "Quaestor Favillae" (a music/culture community concept). Vanilla JS + Vite + Tailwind.
 
 ## Structure
 - `index.html:1` — Public site (6 sections: hero w/ 3D orbit, mission, vision, gallery, values, CTA, footer)
 - `cms.html:1` — Admin panel at `/cms.html`
 - `main.js:1` — CMS hydration, scroll reveal, signup form, gallery slideshow
 - `cms.js:1` — Full CMS engine: schema, renderers, image compression, import/export
-- `style.css:1` — Aicon font, 3D orbit, reveal/line-reveal animations, flipbook styles
+- `style.css:1` — Custom font, 3D orbit, reveal/line-reveal animations, flipbook styles
 - `vite.config.js:1` — Multi-page build (index + cms)
 
 ## Architecture

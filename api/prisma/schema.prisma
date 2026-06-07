@@ -28,8 +28,8 @@ enum OrderStatus {
 }
 
 enum PaymentProvider {
-  MTN_MOMO
-  AIRTEL_MONEY
+  FORNAX
+  VENTUS
 }
 
 enum WebhookResult {
@@ -75,8 +75,8 @@ model Event {
   endsAt          DateTime
   capacity        Int
   status          EventStatus @default(DRAFT)
-  mtnMerchantCode String?
-  airtelNumber    String?
+  fornaxCode      String?
+  ventusNumber    String?
   coverImage      String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt

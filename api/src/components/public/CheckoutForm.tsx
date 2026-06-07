@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 interface Props {
   tierId: string;
   pricePerTicket: number;
-  merchantCode: string;
-  airtelNumber: string;
+  fornaxCode: string;
+  ventusNumber: string;
 }
 
-export function CheckoutForm({ tierId, pricePerTicket, merchantCode, airtelNumber }: Props) {
+export function CheckoutForm({ tierId, pricePerTicket, fornaxCode, ventusNumber }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export function CheckoutForm({ tierId, pricePerTicket, merchantCode, airtelNumbe
           <li className="flex gap-4">
             <span className="flex-shrink-0 w-6 h-6 rounded-full bg-mustard/20 text-mustard text-xs font-bold flex items-center justify-center">1</span>
             <span>
-              Dial <code className="text-mustard font-mono">*{merchantCode}#</code> on your MTN line → Merchant Payment
+              Dial <code className="text-mustard font-mono">*{fornaxCode}#</code> on your mobile line → Merchant Payment
             </span>
           </li>
           <li className="flex gap-4">
@@ -138,9 +138,9 @@ export function CheckoutForm({ tierId, pricePerTicket, merchantCode, airtelNumbe
             </span>
           </li>
         </ol>
-        {airtelNumber && (
+        {ventusNumber && (
           <p className="text-xs text-white/40 border-t border-white/5 pt-4">
-            Airtel Money users: send <span className="text-offwhite">UGX {total.toLocaleString('en-UG')}</span> to <code className="text-mustard">{airtelNumber}</code> and include your reference in the message.
+            Alternative provider: send <span className="text-offwhite">UGX {total.toLocaleString('en-UG')}</span> to <code className="text-mustard">{ventusNumber}</code> and include your reference in the message.
           </p>
         )}
       </div>

@@ -18,7 +18,7 @@ const DEFAULTS = {
     },
     vision: {
         eyebrow: "Vision",
-        text: "We envision a world where music is not merely consumed but genuinely experienced&nbsp;— where artists are known not just for what they make, but for <span class=\"text-mustard font-normal\">why</span> they make it. Album Studies is building a cultural movement that centers the creative process, elevates local artistry, and grows audiences who engage with music the way it was always meant to be received: with presence, curiosity, and care. We see a future where every city has a room where the music goes deeper."
+        text: "We envision a world where music is not merely consumed but genuinely experienced&nbsp;— where artists are known not just for what they make, but for <span class=\"text-mustard font-normal\">why</span> they make it. Quaestor Favillae is building a cultural movement that centers the creative process, elevates local artistry, and grows audiences who engage with music the way it was always meant to be received: with presence, curiosity, and care. We see a future where every city has a room where the music goes deeper."
     },
     gallery: {
         eyebrow: "Visual Studies",
@@ -93,7 +93,7 @@ const DEFAULTS = {
         successToast: "Thank you — you're part of the movement now."
     },
     footer: {
-        copyright: "© 2025 Album Studies. All rights reserved."
+        copyright: "© 2026 Quaestor Favillae. All rights reserved."
     }
 };
 
@@ -390,7 +390,7 @@ function renderBrandingTab() {
                 </div>
                 <div class="flex flex-col gap-2">
                     <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Footer Copyright Note</label>
-                    <input type="text" data-path="footer.copyright" value="${copyrightText.replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3.5 text-sm" placeholder="e.g., © 2025 Album Studies...">
+                    <input type="text" data-path="footer.copyright" value="${copyrightText.replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3.5 text-sm" placeholder="e.g., © 2026 Quaestor Favillae...">
                 </div>
             </div>
         </div>

@@ -12,7 +12,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <div className="w-1 h-1 rounded-full bg-mustard" />
               </div>
             </div>
-            <span className="text-sm font-semibold tracking-wider text-offwhite uppercase">Album Studies</span>
+            <span className="text-sm font-semibold tracking-wider text-offwhite uppercase">Quaestor Favillae</span>
           </Link>
           <PublicNav />
         </div>
@@ -22,8 +22,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       <footer className="border-t border-white/5 mt-20">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-xs tracking-wider text-white/40 uppercase">Album Studies</span>
-          <p className="text-[11px] text-white/30 tracking-wider">© 2026 Album Studies. All rights reserved.</p>
+          <span className="text-xs tracking-wider text-white/40 uppercase">Quaestor Favillae</span>
+          <p className="text-[11px] text-white/30 tracking-wider">© 2026 Quaestor Favillae. All rights reserved.</p>
           <Link href="/admin/login" className="text-[11px] text-white/40 hover:text-mustard tracking-wider transition-colors">
             CMS Panel
           </Link>

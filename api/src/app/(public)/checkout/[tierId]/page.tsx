@@ -16,8 +16,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ tierI
   if (tier.event.status !== 'PUBLISHED') notFound();
   if (tier.sold >= tier.capacity) redirect(`/events/${tier.event.slug}`);
 
-  const merchantCode = tier.event.mtnMerchantCode ?? process.env.MTN_MOMO_MERCHANT_CODE ?? '1653';
-  const airtelNumber = tier.event.airtelNumber ?? process.env.AIRTEL_MONEY_NUMBER ?? '';
+  const fornaxCode = tier.event.fornaxCode ?? process.env.FORNAX_MERCHANT_CODE ?? 'XXXX';
+  const ventusNumber = tier.event.ventusNumber ?? process.env.VENTUS_NUMBER ?? '';
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-12 md:py-20">
@@ -42,8 +42,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ tierI
       <CheckoutForm
         tierId={tier.id}
         pricePerTicket={tier.priceUGX}
-        merchantCode={merchantCode}
-        airtelNumber={airtelNumber}
+        fornaxCode={fornaxCode}
+        ventusNumber={ventusNumber}
       />
     </main>
   );

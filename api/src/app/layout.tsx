@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Album Studies — Tickets',
-  description: 'Buy tickets to Album Studies events.',
+  title: 'Quaestor Favillae — Tickets',
+  description: 'Buy tickets to live events.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

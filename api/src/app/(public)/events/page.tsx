@@ -22,7 +22,7 @@ export default async function EventsPage() {
           EVENTS
         </h1>
         <p className="text-white/50 mt-5 text-sm md:text-base max-w-2xl">
-          Browse upcoming Album Studies events. Pay with MTN MoMo or Airtel Money, get your e-ticket by email.
+          Browse upcoming events. Pay with mobile money, get your e-ticket by email.
         </p>
       </div>
 

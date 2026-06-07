@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/server/auth';
 
-export const metadata: Metadata = { title: 'Admin Login — Album Studies' };
+export const metadata: Metadata = { title: 'Admin Login — Quaestor Favillae' };
 
 export default async function LoginPage({
   searchParams,
@@ -23,7 +23,7 @@ export default async function LoginPage({
             </div>
           </div>
           <h1 className="text-xl font-semibold tracking-wider uppercase text-offwhite">Admin Login</h1>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-white/40 mt-1">Album Studies Control Deck</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-white/40 mt-1">Quaestor Favillae Control Deck</p>
         </div>
 
         <form
@@ -50,7 +50,7 @@ export default async function LoginPage({
               required
               autoComplete="email"
               className="custom-input rounded-xl px-4 py-3.5 text-sm"
-              placeholder="admin@albumstudies.com"
+              placeholder="admin@example.com"
             />
           </div>
           <div className="flex flex-col gap-2">

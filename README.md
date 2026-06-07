@@ -1,74 +1,82 @@
-# Album Studies — Repository
+# Lorem Ipsum Studios — Monorepo
 
-Two-service deployment for the Album Studies brand site.
+A two-service monorepo: a static Vite landing page and a Next.js 14 ticketing backend.
 
 ```
-albumStudies/
-├── site/           Service 1: static Vite landing page (Railway, nginx)
-├── api/            Service 2: Next.js 14 ticketing backend (Railway, standalone)
-├── TICKETING_PLAN.md
-├── BG.jpeg
-├── (why)album studies.pdf
-├── brandkit.pdf
-└── logo.png, LL2.png
+lorem-ipsum/
+├── site/            Service 1: Vite + nginx (static landing page + CMS)
+├── api/             Service 2: Next.js 14 + Prisma + NextAuth (ticketing backend)
+├── README.md
+└── TICKETING_PLAN.md
 ```
+
+## Deploying to Railway (monorepo)
+
+This repo has two services in subdirectories. **Railway's auto-detect can't tell which to build from the monorepo root**, so you must set the **Root Directory** on each service:
+
+1. **Create the project** in Railway and add a **Postgres** plugin (this is Service 2's database).
+2. **Add the static service:**
+   - New → GitHub Repo → select this repo
+   - Open the service **Settings** tab → **Build** section
+   - Set **Root Directory** to `site`
+   - Set **Watch Paths** to `site/**` (so it only rebuilds on site changes)
+   - Railway detects Vite, builds, and serves the static output
+3. **Add the API service:**
+   - New → GitHub Repo → same repo
+   - **Root Directory** → `api`
+   - **Watch Paths** → `api/**`
+   - Railway auto-detects Node + reads `api/Dockerfile`
+4. **Set environment variables** on the API service (see `api/.env.example`).
+5. **Run migrations + seed the first admin:**
+   ```bash
+   railway run --service api npx prisma db push
+   railway run --service api npm run db:seed
+   ```
+6. **Add custom domains** in the Settings → Networking tab (optional).
+
+> If the build still fails, confirm the **Root Directory** is set and that the Dockerfile is being read. Switch the builder to **Dockerfile** explicitly if Railpack's auto-detect is misfiring.
 
 ## Service 1 — Static Site (`site/`)
-- Vite build → static `dist/` → nginx
-- Existing marketing landing + in-browser CMS panel
-- Deploy: Dockerfile in `site/`
+
+Vite + Tailwind (via CDN) + Aicon font. Single-page marketing landing with an in-browser CMS panel that stores data in localStorage.
+
+- Build: `npm run build` → `dist/`
+- Serve: nginx from `dist/`
+- No backend, no env vars
 
 ## Service 2 — API + Tickets (`api/`)
-- Next.js 14 App Router + TypeScript
-- Prisma + Postgres (Railway plugin)
-- NextAuth Credentials for admins
-- SMS webhook at `POST /api/webhooks/sms-payment`
-- Public routes: `/events`, `/events/[slug]`, `/checkout/*`, `/order/[ref]`
-- Admin routes: `/admin/*` (login, dashboard, events, orders, webhooks, manual-verify, help)
+
+Next.js 14 App Router + TypeScript + Prisma + NextAuth.
+
+### Routes
+
+| Path | Auth | Purpose |
+|---|---|---|
+| `GET /` | public | Service landing |
+| `GET /events` | public | List of published events |
+| `GET /events/[slug]` | public | Event detail with tier cards |
+| `GET /checkout/[tierId]` | public | Buyer form |
+| `GET /checkout/[tierId]/pending/[reference]` | public | Payment instructions + auto-polling |
+| `GET /order` | public | Reference lookup |
+| `GET /order/[reference]` | public | Status page |
+| `POST /api/orders` | public | Create order |
+| `GET /api/orders/[reference]` | public | Poll order status |
+| `POST /api/webhooks/sms-payment` | secret | Inbound payment SMS |
+| `/admin/*` | admin | Control deck |
 
 ### Local development
+
 ```bash
 cd api
-cp .env.example .env       # fill in DATABASE_URL, secrets, etc.
+cp .env.example .env       # fill in DATABASE_URL, secrets
 npm install
-npx prisma db push         # create tables
-npm run db:seed            # creates the first admin user
+npx prisma db push
+npm run db:seed            # creates the first admin
 npm run dev
 ```
 
-### Deploy to Railway
-1. Create a new Railway project.
-2. Add the **Postgres** plugin (gives you `DATABASE_URL`).
-3. Create a new service pointing at `api/`. Railway will use the Dockerfile.
-4. Set env vars from `.env.example`.
-5. Run `railway run npx prisma db push` to create tables.
-6. Run `railway run npm run db:seed` to create the first admin.
-7. Set `NEXTAUTH_URL` to your service's public URL.
-8. CNAME your domain (`api.your-domain.com`) to the service.
+## Reference format
 
-## What's shipped
-
-### Phase 1 (✓)
-- Next.js 14 + Prisma + Postgres + NextAuth
-- Admin shell: login, dashboard KPIs, events/orders/webhooks lists
-- `prisma/seed.ts` for first admin
-
-### Phase 2 (✓) — public ticketing flow
-- `GET /events` — published event list
-- `GET /events/[slug]` — event detail with tier cards
-- `GET /checkout/[tierId]` — form (name, email, phone, qty)
-- `GET /checkout/[tierId]/pending/[reference]` — payment instructions + auto-polling
-- `GET /order` — reference lookup
-- `GET /order/[reference]` — public status page
-- `POST /api/orders` — create order, reserve reference, increment `sold`
-- `GET /api/orders/[reference]` — poll status (used by pending page)
-- Reference format: `TKT-{EVENT_SLUG}-{6char}` (collision-safe via retry)
-
-### Phases 3–7 (pending)
-- Phase 3: SMS webhook with parser + HMAC + idempotency
-- Phase 4: PDF ticket generation + email + WhatsApp deep link
-- Phase 5: Admin CRUD for events
-- Phase 6: Android SMS Gateway setup guide
-- Phase 7: Hardening (rate limits, error emails, backups)
+`TKT-{EVENT_SLUG}-{6char}` e.g. `TKT-EVT-A7K2B9`. Collision-safe with up to 6 retries, then a timestamp fallback.
 
 See [TICKETING_PLAN.md](./TICKETING_PLAN.md) for the full plan.

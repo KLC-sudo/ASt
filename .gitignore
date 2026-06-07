@@ -32,6 +32,7 @@ yarn-error.log*
 /brandkit.pdf
 "/(why)album studies.pdf"
 /drive-download-*/
+/site2/
 
 # --- site/ (Vite static) ---
 site/node_modules/

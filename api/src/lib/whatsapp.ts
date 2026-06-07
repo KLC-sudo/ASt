@@ -17,7 +17,7 @@ function normalizePhone(phone: string): string {
 export function buildWhatsAppLink(p: WhatsAppLinkParams): string {
   const phone = normalizePhone(p.phone);
   const message = [
-    `Hello, I have paid for my Album Studies ticket.`,
+    `Hello, I have paid for my Quaestor Favillae ticket.`,
     ``,
     `Event: ${p.eventTitle}`,
     `Order ref: ${p.orderReference}`,

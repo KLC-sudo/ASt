@@ -15,9 +15,9 @@ export default async function PendingPage({ params }: { params: Promise<{ tierId
   });
   if (!order || order.tierId !== tierId) notFound();
 
-  const merchantCode = order.tier.event.mtnMerchantCode ?? process.env.MTN_MOMO_MERCHANT_CODE ?? '1653';
-  const airtelNumber = order.tier.event.airtelNumber ?? process.env.AIRTEL_MONEY_NUMBER ?? '';
-  const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? airtelNumber ?? '+256700000000';
+  const fornaxCode = order.tier.event.fornaxCode ?? process.env.FORNAX_MERCHANT_CODE ?? 'XXXX';
+  const ventusNumber = order.tier.event.ventusNumber ?? process.env.VENTUS_NUMBER ?? '';
+  const supportPhone = process.env.PAYMENT_SUPPORT_PHONE ?? ventusNumber ?? '+0000000000';
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-12 md:py-20">
@@ -46,16 +46,16 @@ export default async function PendingPage({ params }: { params: Promise<{ tierId
 
         <div className="border-t border-white/5 pt-6 space-y-4 text-sm text-white/70">
           <p>
-            <span className="text-mustard font-medium">MTN MoMo:</span> Dial{' '}
-            <code className="text-mustard font-mono">*{merchantCode}#</code> → Merchant Payment → enter{' '}
+            <span className="text-mustard font-medium">Fornax:</span> Dial{' '}
+            <code className="text-mustard font-mono">*{fornaxCode}#</code> → Merchant Payment → enter{' '}
             <strong className="text-offwhite">{formatUGX(order.amountUGX).replace('UGX ', '')}</strong> → reference{' '}
             <code className="text-mustard font-mono">{order.reference}</code>
           </p>
-          {airtelNumber && (
+          {ventusNumber && (
             <p>
-              <span className="text-mustard font-medium">Airtel Money:</span> Send{' '}
+              <span className="text-mustard font-medium">Ventus:</span> Send{' '}
               <strong className="text-offwhite">{formatUGX(order.amountUGX)}</strong> to{' '}
-              <code className="text-mustard">{airtelNumber}</code> with reference{' '}
+              <code className="text-mustard">{ventusNumber}</code> with reference{' '}
               <code className="text-mustard font-mono">{order.reference}</code>
             </p>
           )}

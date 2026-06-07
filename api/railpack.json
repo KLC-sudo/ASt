@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "build": {
+    "commands": {
+      "build": "npx prisma generate && npm run build"
+    }
+  },
+  "deploy": {
+    "startCommand": "node .next/standalone/server.js",
+    "healthcheckPath": "/"
+  }
+}
