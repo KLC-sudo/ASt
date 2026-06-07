@@ -17,6 +17,22 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Root-level brand assets (not source code)
+*.pdf
+*.zip
+*.jpeg
+*.jpg
+*.png
+*.gif
+*.webp
+/LL2.png
+/logo.png
+/BG.jpeg
+"(why)album studies.pdf"
+/brandkit.pdf
+"/(why)album studies.pdf"
+/drive-download-*/
+
 # --- site/ (Vite static) ---
 site/node_modules/
 site/dist/
@@ -26,6 +42,3 @@ api/node_modules/
 api/.next/
 api/out/
 api/.next/standalone/node_modules/
-
-# OS junk anywhere
-.DS_Store

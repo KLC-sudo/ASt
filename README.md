@@ -46,5 +46,29 @@ npm run dev
 7. Set `NEXTAUTH_URL` to your service's public URL.
 8. CNAME your domain (`api.your-domain.com`) to the service.
 
-### Phased rollout
-See [TICKETING_PLAN.md](./TICKETING_PLAN.md) for the full plan. Phase 1 (scaffold + admin login) is complete; phases 2–7 ship incrementally.
+## What's shipped
+
+### Phase 1 (✓)
+- Next.js 14 + Prisma + Postgres + NextAuth
+- Admin shell: login, dashboard KPIs, events/orders/webhooks lists
+- `prisma/seed.ts` for first admin
+
+### Phase 2 (✓) — public ticketing flow
+- `GET /events` — published event list
+- `GET /events/[slug]` — event detail with tier cards
+- `GET /checkout/[tierId]` — form (name, email, phone, qty)
+- `GET /checkout/[tierId]/pending/[reference]` — payment instructions + auto-polling
+- `GET /order` — reference lookup
+- `GET /order/[reference]` — public status page
+- `POST /api/orders` — create order, reserve reference, increment `sold`
+- `GET /api/orders/[reference]` — poll status (used by pending page)
+- Reference format: `TKT-{EVENT_SLUG}-{6char}` (collision-safe via retry)
+
+### Phases 3–7 (pending)
+- Phase 3: SMS webhook with parser + HMAC + idempotency
+- Phase 4: PDF ticket generation + email + WhatsApp deep link
+- Phase 5: Admin CRUD for events
+- Phase 6: Android SMS Gateway setup guide
+- Phase 7: Hardening (rate limits, error emails, backups)
+
+See [TICKETING_PLAN.md](./TICKETING_PLAN.md) for the full plan.
