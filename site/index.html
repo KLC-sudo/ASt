@@ -43,12 +43,17 @@
                 <h1 data-cms="hero.titleLine1" class="landing-stacked-title">QUAESTOR</h1>
                 <h1 data-cms="hero.titleLine2" class="landing-stacked-title landing-stacked-sub">FAVILLAE</h1>
             </div>
-            <div class="w-32 flex justify-end">
+            <div class="w-32 hidden md:flex justify-end">
                 <a data-cms-href="header.ctaUrl" href="https://your-api.example.com/events" class="text-[10px] tracking-[0.25em] uppercase text-graphite/70 border border-graphite/20 px-4 py-2 hover:border-mustard/60 hover:text-mustard transition-colors duration-300 whitespace-nowrap">
                     <span data-cms="header.ctaText">Get Tickets</span>
                 </a>
             </div>
         </header>
+
+        <!-- Mobile FAB (floating action button) — tickets CTA -->
+        <a data-cms-href="header.ctaUrl" href="https://your-api.example.com/events" class="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-mustard text-graphite flex items-center justify-center shadow-[0_4px_20px_rgba(200,160,62,0.4)] hover:scale-105 active:scale-95 transition-transform" aria-label="Get tickets">
+            <span data-cms="header.ctaText" class="text-[10px] tracking-[0.15em] uppercase font-semibold">Tickets</span>
+        </a>
 
         <div class="orbit-scene">
             <div class="orbit-3d-context">
@@ -119,7 +124,7 @@
             </div>
         </div>
 
-        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 reveal z-20" style="transition-delay:1s">
+        <div class="absolute bottom-10 inset-x-0 mx-auto w-fit flex flex-col items-center gap-3 reveal z-20" style="transition-delay:1s">
             <span data-cms="hero.scrollText" class="text-[10px] tracking-[0.4em] uppercase text-graphite/45 font-medium">Scroll</span>
             <div class="w-[3px] h-12 bg-graphite/15 relative overflow-hidden rounded-full">
                 <div class="w-full h-4 bg-mustard scroll-line rounded-full shadow-[0_0_8px_rgba(200,160,62,0.6)]"></div>
