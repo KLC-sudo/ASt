@@ -34,6 +34,9 @@ yarn-error.log*
 /drive-download-*/
 /site2/
 
+# Build/test artifacts
+/next-env.d.ts
+
 # --- site/ (Vite static) ---
 site/node_modules/
 site/dist/
