@@ -388,31 +388,44 @@ function appendPublishPanel() {
     panel.className = 'glass-card rounded-xl p-5 mb-6 border border-dashed border-white/10';
     panel.innerHTML = `
         <h3 class="text-xs font-semibold tracking-[0.2em] uppercase text-mustard/80 mb-3 border-b border-white/5 pb-2">
-            Publish to API (Global Sync)
+            Publish Globally
         </h3>
         <p class="text-[11px] text-white/45 mb-4 leading-relaxed">
-            Changes are staged locally until published. Click "Publish" to push all CMS fields to the database. Every visitor will see the published version on next page load.
+            Changes are staged locally until published. Use the API for instant global sync, or export a JSON file as a fallback.
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">API Base URL</label>
-                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://a-st-production.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="https://api.your-domain.com">
+
+        <div class="mb-5">
+            <h4 class="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-2">API Publish</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">API Base URL</label>
+                    <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://a-st-production.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="https://api.your-domain.com">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Publish Key</label>
+                    <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="CMS_PUBLISH_SECRET value">
+                </div>
             </div>
-            <div class="flex flex-col gap-2">
-                <label class="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Publish Key</label>
-                <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-xl px-4 py-3 text-sm" placeholder="CMS_PUBLISH_SECRET value">
+            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <button type="button" id="btn-publish" class="px-4 py-2.5 rounded-lg bg-mustard text-graphite text-[10px] font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                    Publish to API
+                </button>
+                <button type="button" id="btn-fetch-remote" class="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white/70 text-[10px] font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                    Fetch from API
+                </button>
+                <span id="publish-status" class="text-[10px] text-white/40"></span>
             </div>
         </div>
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center">
-            <button type="button" id="btn-publish" class="px-5 py-3 rounded-xl bg-mustard text-graphite text-xs font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                Publish to API
+
+        <div class="border-t border-white/5 pt-4">
+            <h4 class="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-2">Fallback Export</h4>
+            <p class="text-[10px] text-white/30 mb-3">Download cms-config.json and drop it into the static site's public/ folder as a backup when the API is unreachable.</p>
+            <button type="button" id="btn-export-json" class="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white/70 text-[10px] font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                Download cms-config.json
             </button>
-            <button type="button" id="btn-fetch-remote" class="px-5 py-3 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                Fetch Latest from API
-            </button>
-            <span id="publish-status" class="text-[11px] text-white/40"></span>
         </div>
     `;
     container.appendChild(panel);
@@ -422,13 +435,13 @@ function appendPublishPanel() {
         const publishKey = document.getElementById('publish-key').value;
         const status = document.getElementById('publish-status');
         if (!apiUrl || !publishKey) {
-            status.textContent = 'Both API URL and Publish Key required.';
-            status.className = 'text-[11px] text-red-400';
+            status.textContent = 'Both URL and key required.';
+            status.className = 'text-[10px] text-red-400';
             return;
         }
         localStorage.setItem('quaestorPublishConfig', JSON.stringify({ apiUrl, publishKey }));
         status.textContent = 'Publishing…';
-        status.className = 'text-[11px] text-white/40';
+        status.className = 'text-[10px] text-white/40';
         try {
             const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config/publish', {
                 method: 'PUT',
@@ -438,19 +451,19 @@ function appendPublishPanel() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Publish failed');
             status.textContent = `Published ${data.count} fields successfully.`;
-            status.className = 'text-[11px] text-green-400';
+            status.className = 'text-[10px] text-green-400';
         } catch (err) {
             status.textContent = err.message;
-            status.className = 'text-[11px] text-red-400';
+            status.className = 'text-[10px] text-red-400';
         }
     });
 
     document.getElementById('btn-fetch-remote').addEventListener('click', async () => {
         const apiUrl = document.getElementById('publish-api-url').value.trim();
         const status = document.getElementById('publish-status');
-        if (!apiUrl) { status.textContent = 'API URL required.'; status.className = 'text-[11px] text-red-400'; return; }
+        if (!apiUrl) { status.textContent = 'API URL required.'; status.className = 'text-[10px] text-red-400'; return; }
         status.textContent = 'Fetching…';
-        status.className = 'text-[11px] text-white/40';
+        status.className = 'text-[10px] text-white/40';
         try {
             const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
             const data = await res.json();
@@ -466,10 +479,25 @@ function appendPublishPanel() {
             }
             renderTabFields();
             status.textContent = 'Fetched. Click "Save & Apply" to keep locally.';
-            status.className = 'text-[11px] text-green-400';
+            status.className = 'text-[10px] text-green-400';
         } catch (err) {
-            status.textContent = err.message;
-            status.className = 'text-[11px] text-red-400';
+            status.textContent = err.message || 'API unreachable.';
+            status.className = 'text-[10px] text-red-400';
+        }
+    });
+
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+        try {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ config: stagedConfig }, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "cms-config.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("cms-config.json exported! Drop into public/ and redeploy.", "📤");
+        } catch (err) {
+            showToast("Failed to export.", "⚠️");
         }
     });
 }

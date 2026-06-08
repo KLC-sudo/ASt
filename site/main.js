@@ -2,7 +2,7 @@ import './style.css';
 
 const CMS_API_URL = 'https://a-st-production.up.railway.app';
 
-async function loadRemoteConfig() {
+async function fetchFromAPI() {
     try {
         const res = await fetch(CMS_API_URL + '/api/site-config', { cache: 'no-store' });
         if (!res.ok) return null;
@@ -11,21 +11,30 @@ async function loadRemoteConfig() {
     } catch { return null; }
 }
 
+async function fetchFromStaticFile() {
+    try {
+        const res = await fetch('./cms-config.json', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.config || data || null;
+    } catch { return null; }
+}
+
+function loadLocalConfig() {
+    try {
+        const raw = localStorage.getItem('albumStudiesCMSData');
+        if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // ── CMS HYDRATION ENGINE ─────────────────────────────
-    // Fetches published config from the API. Remote is authoritative.
-    // Falls back to localStorage when API is unreachable.
+    // Priority: API → static cms-config.json → localStorage
     await (async function hydrateCMSData() {
-        let data = null;
-        const remote = await loadRemoteConfig();
-        if (remote && typeof remote === 'object') {
-            data = remote;
-        } else {
-            try {
-                const raw = localStorage.getItem('albumStudiesCMSData');
-                if (raw) data = JSON.parse(raw);
-            } catch {}
-        }
+        let data = await fetchFromAPI();
+        if (!data) data = await fetchFromStaticFile();
+        if (!data) data = loadLocalConfig();
 
         if (!data) return;
         const getVal = (obj, path) =>
