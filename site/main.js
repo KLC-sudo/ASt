@@ -1,28 +1,30 @@
 import './style.css';
 
+const CMS_API_URL = 'https://a-st-production.up.railway.app';
+
 async function loadRemoteConfig() {
     try {
-        const res = await fetch('./cms-config.json', { cache: 'no-store' });
+        const res = await fetch(CMS_API_URL + '/api/site-config', { cache: 'no-store' });
         if (!res.ok) return null;
         const data = await res.json();
-        return data.config || data || null;
+        return data.config || null;
     } catch { return null; }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     // ── CMS HYDRATION ENGINE ─────────────────────────────
-    // Fetches published config from cms-config.json (same origin).
-    // Falls back to localStorage for local-only edits.
+    // Fetches published config from the API. Remote is authoritative.
+    // Falls back to localStorage when API is unreachable.
     await (async function hydrateCMSData() {
         let data = null;
-        try {
-            const raw = localStorage.getItem('albumStudiesCMSData');
-            if (raw) data = JSON.parse(raw);
-        } catch {}
-
         const remote = await loadRemoteConfig();
         if (remote && typeof remote === 'object') {
             data = remote;
+        } else {
+            try {
+                const raw = localStorage.getItem('albumStudiesCMSData');
+                if (raw) data = JSON.parse(raw);
+            } catch {}
         }
 
         if (!data) return;
