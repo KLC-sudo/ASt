@@ -27,8 +27,14 @@ COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
+USER root
+RUN apk add --no-cache postgresql16-client
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push --skip-generate && exec node server.js"]
+ENTRYPOINT ["/entrypoint.sh"]
