@@ -1,6 +1,6 @@
 import './style.css';
 
-const CMS_API_URL = 'https://a-st-production.up.railway.app';
+const CMS_API_URL = 'https://albumstudies.up.railway.app';
 
 async function fetchFromAPI() {
     try {

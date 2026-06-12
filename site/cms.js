@@ -397,7 +397,7 @@ function appendPublishPanel() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div class="flex flex-col gap-1.5">
                 <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">API Base URL</label>
-                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://a-st-production.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="https://api.your-domain.com">
+                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://albumstudies.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="https://api.your-domain.com">
             </div>
             <div class="flex flex-col gap-1.5">
                 <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Publish Key</label>
