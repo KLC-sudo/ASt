@@ -4,10 +4,11 @@ const CMS_API_URL = 'https://a-st-production.up.railway.app';
 
 async function fetchFromAPI() {
     try {
-        const res = await fetch(CMS_API_URL + '/api/site-config', { cache: 'no-store' });
+        const res = await fetch(CMS_API_URL + '/api/content', { cache: 'no-store' });
         if (!res.ok) return null;
         const data = await res.json();
-        return data.config || null;
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) return data;
+        return null;
     } catch { return null; }
 }
 

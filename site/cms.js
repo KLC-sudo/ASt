@@ -371,7 +371,7 @@ function renderTicketingTab() {
     appendPublishPanel();
 }
 
-// Shared publish panel injected at the bottom of the ticketing tab
+// Shared publish panel — single Save button that writes to the API
 function appendPublishPanel() {
     const container = document.getElementById('fields-container');
     if (!container) return;
@@ -391,111 +391,75 @@ function appendPublishPanel() {
             Publish Globally
         </h3>
         <p class="text-[11px] text-white/45 mb-4 leading-relaxed">
-            Changes are staged locally until published. Use the API for instant global sync, or export a JSON file as a fallback.
+            Save pushes all content to the server. Every visitor sees it on next page load. If the API is unreachable, export the JSON file as a backup.
         </p>
 
-        <div class="mb-5">
-            <h4 class="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-2">API Publish</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">API Base URL</label>
-                    <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://a-st-production.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="https://api.your-domain.com">
-                </div>
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Publish Key</label>
-                    <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="CMS_PUBLISH_SECRET value">
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">API Base URL</label>
+                <input type="url" id="publish-api-url" value="${(pubCfg.apiUrl || 'https://a-st-production.up.railway.app').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="https://api.your-domain.com">
             </div>
-            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <button type="button" id="btn-publish" class="px-4 py-2.5 rounded-lg bg-mustard text-graphite text-[10px] font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                    Publish to API
-                </button>
-                <button type="button" id="btn-fetch-remote" class="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white/70 text-[10px] font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                    Fetch from API
-                </button>
-                <span id="publish-status" class="text-[10px] text-white/40"></span>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Publish Key</label>
+                <input type="password" id="publish-key" value="${(pubCfg.publishKey || '').replace(/"/g, '&quot;')}" class="custom-input rounded-lg px-3 py-2.5 text-xs" placeholder="CMS_PUBLISH_SECRET value">
             </div>
         </div>
 
-        <div class="border-t border-white/5 pt-4">
-            <h4 class="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-2">Fallback Export</h4>
-            <p class="text-[10px] text-white/30 mb-3">Download cms-config.json and drop it into the static site's public/ folder as a backup when the API is unreachable.</p>
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <button type="button" id="btn-publish" class="px-5 py-2.5 rounded-lg bg-mustard text-graphite text-[10px] font-bold uppercase tracking-wider hover:bg-mustard/80 transition-all flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                Save
+            </button>
             <button type="button" id="btn-export-json" class="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white/70 text-[10px] font-semibold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                Download cms-config.json
+                Export JSON
             </button>
+            <span id="publish-status" class="text-[10px] text-white/40"></span>
         </div>
     `;
     container.appendChild(panel);
 
+    // Save — POST entire staged config to /api/content
     document.getElementById('btn-publish').addEventListener('click', async () => {
         const apiUrl = document.getElementById('publish-api-url').value.trim();
         const publishKey = document.getElementById('publish-key').value;
         const status = document.getElementById('publish-status');
         if (!apiUrl || !publishKey) {
-            status.textContent = 'Both URL and key required.';
+            status.textContent = 'URL and key required.';
             status.className = 'text-[10px] text-red-400';
             return;
         }
         localStorage.setItem('quaestorPublishConfig', JSON.stringify({ apiUrl, publishKey }));
-        status.textContent = 'Publishing…';
+        status.textContent = 'Saving…';
         status.className = 'text-[10px] text-white/40';
         try {
-            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config/publish', {
-                method: 'PUT',
+            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/content', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-publish-key': publishKey },
-                body: JSON.stringify({ config: stagedConfig }),
+                body: JSON.stringify(stagedConfig),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Publish failed');
-            status.textContent = `Published ${data.count} fields successfully.`;
+            if (!res.ok) throw new Error(data.error || 'Save failed');
+            status.textContent = 'Saved! All visitors will see this on next page load.';
             status.className = 'text-[10px] text-green-400';
+            showToast("Content published globally!", "✅");
         } catch (err) {
             status.textContent = err.message;
             status.className = 'text-[10px] text-red-400';
         }
     });
 
-    document.getElementById('btn-fetch-remote').addEventListener('click', async () => {
-        const apiUrl = document.getElementById('publish-api-url').value.trim();
-        const status = document.getElementById('publish-status');
-        if (!apiUrl) { status.textContent = 'API URL required.'; status.className = 'text-[10px] text-red-400'; return; }
-        status.textContent = 'Fetching…';
-        status.className = 'text-[10px] text-white/40';
-        try {
-            const res = await fetch(apiUrl.replace(/\/$/, '') + '/api/site-config', { cache: 'no-store' });
-            const data = await res.json();
-            if (!res.ok || !data.config) throw new Error('No config found');
-            for (const key in data.config) {
-                const path = key.split('.');
-                let cursor = stagedConfig;
-                for (let i = 0; i < path.length - 1; i++) {
-                    if (cursor[path[i]] == null) cursor[path[i]] = {};
-                    cursor = cursor[path[i]];
-                }
-                cursor[path[path.length - 1]] = data.config[key];
-            }
-            renderTabFields();
-            status.textContent = 'Fetched. Click "Save & Apply" to keep locally.';
-            status.className = 'text-[10px] text-green-400';
-        } catch (err) {
-            status.textContent = err.message || 'API unreachable.';
-            status.className = 'text-[10px] text-red-400';
-        }
-    });
-
+    // Export JSON — fallback when API is unreachable
     document.getElementById('btn-export-json').addEventListener('click', () => {
         try {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ config: stagedConfig }, null, 4));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stagedConfig, null, 4));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", "cms-config.json");
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast("cms-config.json exported! Drop into public/ and redeploy.", "📤");
+            showToast("cms-config.json exported! Deploy it alongside the site.", "📤");
         } catch (err) {
             showToast("Failed to export.", "⚠️");
         }
