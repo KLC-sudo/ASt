@@ -430,6 +430,7 @@ function appendPublishPanel() {
             return;
         }
         localStorage.setItem('quaestorPublishConfig', JSON.stringify({ apiUrl, publishKey }));
+        localStorage.setItem('albumStudiesCMSData', JSON.stringify(stagedConfig));
         status.textContent = 'Saving…';
         status.className = 'text-[10px] text-white/40';
         try {
@@ -1116,10 +1117,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Stage Form submit and save state to localstorage
+    // Stage Form submit: save locally + publish to API in one action
     const form = document.getElementById('cms-editor-form');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Re-bind all values from form just in case 'change' events missed active keystrokes
@@ -1128,12 +1129,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 setVal(stagedConfig, f.getAttribute('data-path'), f.value);
             });
 
+            // 1. Save to localStorage
             try {
                 localStorage.setItem('albumStudiesCMSData', JSON.stringify(stagedConfig));
-                showToast("Configuration saved and live updates applied!", "💾");
             } catch (err) {
                 console.error('[CMS] Failed to save state to localStorage:', err);
                 showToast("Staging failed. Localstorage limit exceeded.", "⚠️");
+                return;
+            }
+
+            // 2. Publish to API if configured
+            const pubCfg = (() => {
+                try { return JSON.parse(localStorage.getItem('quaestorPublishConfig') || 'null') || {}; }
+                catch { return {}; }
+            })();
+
+            if (pubCfg.apiUrl && pubCfg.publishKey) {
+                showToast("Saving & publishing globally…", "⏳");
+                try {
+                    const res = await fetch(pubCfg.apiUrl.replace(/\/$/, '') + '/api/content', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-publish-key': pubCfg.publishKey },
+                        body: JSON.stringify(stagedConfig),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Publish failed');
+                    showToast("Saved & published globally!", "✅");
+                } catch (err) {
+                    console.error('[CMS] Publish failed:', err);
+                    showToast("Saved locally but publish failed: " + err.message, "⚠️");
+                }
+            } else {
+                showToast("Saved locally. Configure API URL & key to publish globally.", "💾");
             }
         });
     }
