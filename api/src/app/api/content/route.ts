@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleCorsPreFlight, withCors } from '@/lib/cors';
 
@@ -14,6 +14,10 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+function jsonWithCors(request: NextRequest, body: unknown, init?: ResponseInit) {
+  return withCors(request, NextResponse.json(body, init));
+}
+
 export async function OPTIONS(request: NextRequest) {
   return handleCorsPreFlight(request);
 }
@@ -22,51 +26,31 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const row = await prisma.siteConfig.findUnique({ where: { key: CONTENT_KEY } });
   const content = row?.value ?? {};
-  return withCors(
-    request,
-    new Response(JSON.stringify(content), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    }),
-  );
+  return jsonWithCors(request, content, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }
 
 // POST /api/content — requires publish key
 export async function POST(request: NextRequest) {
   if (!publishSecret) {
-    return withCors(
+    return jsonWithCors(
       request,
-      new Response(JSON.stringify({ error: 'CMS_PUBLISH_SECRET not configured.' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      { error: 'CMS_PUBLISH_SECRET not configured.' },
+      { status: 503 },
     );
   }
 
   const provided = request.headers.get('x-publish-key');
   if (!provided || !constantTimeEqual(provided, publishSecret)) {
-    return withCors(
-      request,
-      new Response(JSON.stringify({ error: 'Invalid publish key.' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
+    return jsonWithCors(request, { error: 'Invalid publish key.' }, { status: 401 });
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return withCors(
-      request,
-      new Response(JSON.stringify({ error: 'Invalid JSON.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
+    return jsonWithCors(request, { error: 'Invalid JSON.' }, { status: 400 });
   }
 
   await prisma.siteConfig.upsert({
@@ -75,10 +59,5 @@ export async function POST(request: NextRequest) {
     create: { key: CONTENT_KEY, value: body as object },
   });
 
-  return withCors(
-    request,
-    new Response(JSON.stringify({ ok: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  );
+  return jsonWithCors(request, { ok: true });
 }
