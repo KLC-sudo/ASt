@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { auth, signOut } from '@/server/auth';
 
 const NAV = [
@@ -13,7 +12,12 @@ const NAV = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user) redirect('/admin/login');
+  const isLoginPage = !session?.user;
+
+  // Don't redirect on the login page itself — that causes an infinite loop
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 md:p-8">
