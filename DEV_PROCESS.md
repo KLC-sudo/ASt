@@ -2,7 +2,7 @@
 
 A living log of the work done on this project, decisions made, and how to continue. Intended as a memory aid for resuming work after time away, and as a record of the build process.
 
-Last updated: commit `09b8379` (texture enhancement).
+Last updated: Phase 5 in progress (admin CRUD).
 
 ---
 
@@ -18,10 +18,10 @@ Two-service monorepo for a ticketed-events product:
 
 | Service | Status | Notes |
 |---|---|---|
-| Static site | **live at albumstudies.up.railway.app** | Custom domain, 3D orbit, CMS, Get-Tickets FAB on mobile, Tailwind v4 build |
-| API (ticketing) | **live at a-st-production.up.railway.app** | All Phase 1+2 routes working (events, checkout, pending, order status, admin login, dashboard) |
-| SiteConfig global sync | **live** | Static site fetches published config from API on every page load |
-| Postgres | connected to API service | Tables created via `npx prisma db push` |
+| Static site | **live at album-studies.up.railway.app** | Custom domain, 3D orbit, CMS, Tailwind v4 build |
+| API (ticketing) | **live at albumstudies.up.railway.app** | Next.js app with Prisma + Postgres |
+| CMS global sync | **live** | CMS Save button: saves locally + publishes to API in one step |
+| Postgres | connected to API service | Tables created via `prisma db push` |
 
 ---
 
@@ -40,12 +40,14 @@ Two-service monorepo for a ticketed-events product:
 | 2.11 | Mobile FAB for Get Tickets + Ticketing tab + global CMS sync | ✓ | `3a14810` |
 | 2.12 | CORS headers on site-config API routes | ✓ | `6ce2646` |
 | 2.13 | Tailwind v4 build (drop CDN) + texture enhancement on orbit | ✓ | `2d8a47d` + `09b8379` |
+| 2.14 | CSS cascade layer fix (@layer base/components) + Dockerfile fixes | ✓ | `9324ec0` |
+| 2.15 | CMS global sync via /api/content endpoint (single JSON blob) | ✓ | `c03206a` |
+| 2.16 | One-click CMS Save (local + global publish in one action) | ✓ | `9699f5c` |
 | 3 | SMS webhook with parser, HMAC, idempotency | pending | — |
 | 4 | PDF ticket generation + email delivery + WhatsApp deep link | pending | — |
-| 5 | Admin CRUD (events, tiers, orders, webhooks, manual verify) | pending | — |
+| 5 | Admin CRUD (events, tiers, orders, webhooks, manual verify) | **in progress** | — |
 | 6 | Android SMS forwarder setup guide at `/admin/help` | pending | — |
 | 7 | Hardening (rate limiting, error emails, Sentry, backups) | pending | — |
-| 8 | (skipped — was global sync, now shipped as 2.11) | — | — |
 
 See `TICKETING_PLAN.md` for the original detailed design.
 See `RAILWAY_DEPLOY.md` for the deployment walkthrough.
