@@ -22,6 +22,9 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /repo/api/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/api/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /repo/api/prisma ./prisma
+COPY --from=deps --chown=nextjs:nodejs /repo/api/node_modules/.prisma ./node_modules/.prisma
+COPY --from=deps --chown=nextjs:nodejs /repo/api/node_modules/@prisma ./node_modules/@prisma
+COPY --from=deps --chown=nextjs:nodejs /repo/api/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /repo/api/public ./public
 
 USER nextjs
