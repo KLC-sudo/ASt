@@ -13,9 +13,9 @@ const eventSchema = z.object({
   endsAt: z.string().min(1),
   capacity: z.coerce.number().int().min(1),
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED', 'SOLD_OUT']).default('DRAFT'),
-  fornaxCode: z.string().optional().nullable(),
-  ventusNumber: z.string().optional().nullable(),
-  coverImage: z.string().optional().nullable(),
+  fornaxCode: z.string().optional().nullable().transform(v => v || null),
+  ventusNumber: z.string().optional().nullable().transform(v => v || null),
+  coverImage: z.string().optional().nullable().transform(v => v || null),
 });
 
 const tierSchema = z.object({
@@ -27,19 +27,24 @@ const tierSchema = z.object({
 // ── Event CRUD ──────────────────────────────────────────
 
 export async function createEvent(formData: FormData) {
-  const parsed = eventSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Invalid input' };
-  }
+  try {
+    const parsed = eventSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    }
 
-  const existing = await prisma.event.findUnique({ where: { slug: parsed.data.slug } });
-  if (existing) {
-    return { error: 'An event with this slug already exists' };
-  }
+    const existing = await prisma.event.findUnique({ where: { slug: parsed.data.slug } });
+    if (existing) {
+      return { error: 'An event with this slug already exists' };
+    }
 
-  await prisma.event.create({ data: parsed.data });
-  revalidatePath('/admin/events');
-  return { ok: true };
+    await prisma.event.create({ data: parsed.data });
+    revalidatePath('/admin/events');
+    return { ok: true };
+  } catch (e) {
+    console.error('[createEvent]', e);
+    return { error: 'Server error: ' + (e instanceof Error ? e.message : String(e)) };
+  }
 }
 
 export async function updateEvent(id: string, formData: FormData) {

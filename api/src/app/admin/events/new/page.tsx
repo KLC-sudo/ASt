@@ -2,16 +2,26 @@ import { createEvent } from '../../actions';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-export default function NewEventPage() {
+export default async function NewEventPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   async function handleCreate(formData: FormData) {
     'use server';
-    const result = await createEvent(formData);
-    if (result.error) {
-      // Re-render with error — for simplicity, redirect with a note
-      redirect('/admin/events/new?error=' + encodeURIComponent(result.error));
+    try {
+      const result = await createEvent(formData);
+      if (result.error) {
+        redirect('/admin/events/new?error=' + encodeURIComponent(result.error));
+      }
+      redirect('/admin/events');
+    } catch (e) {
+      if ((e as any)?.digest?.startsWith('NEXT_REDIRECT')) throw e;
+      redirect('/admin/events/new?error=' + encodeURIComponent(String(e)));
     }
-    redirect('/admin/events');
   }
+
+  const { error } = await searchParams;
 
   return (
     <div className="max-w-2xl">
@@ -24,6 +34,11 @@ export default function NewEventPage() {
       </div>
 
       <form action={handleCreate} className="glass-card rounded-xl p-6 space-y-5">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-sm text-red-400">
+            {decodeURIComponent(error)}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-semibold tracking-wider text-white/50 uppercase">Title</label>
