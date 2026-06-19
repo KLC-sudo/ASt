@@ -2,7 +2,7 @@
 
 A living log of the work done on this project, decisions made, and how to continue. Intended as a memory aid for resuming work after time away, and as a record of the build process.
 
-Last updated: Phase 5 in progress (admin CRUD).
+Last updated: Phase 5 complete, Phase 4 next.
 
 ---
 
@@ -16,12 +16,27 @@ Two-service monorepo for a ticketed-events product:
 
 ## Deployment status (live)
 
-| Service | Status | Notes |
+| Service | Status | URL | Notes |
+|---|---|---|---|
+| Static site | **live** | album-studies.up.railway.app | 3D orbit, CMS, Tailwind v4 |
+| API (ticketing) | **live** | albumstudies.up.railway.app | Next.js + Prisma + Postgres |
+| CMS global sync | **live** | — | One-click Save publishes to API |
+| Postgres | **connected** | — | Tables via `prisma db push` |
+
+---
+
+## What's working
+
+| Feature | Status | Notes |
 |---|---|---|
-| Static site | **live at album-studies.up.railway.app** | Custom domain, 3D orbit, CMS, Tailwind v4 build |
-| API (ticketing) | **live at albumstudies.up.railway.app** | Next.js app with Prisma + Postgres |
-| CMS global sync | **live** | CMS Save button: saves locally + publishes to API in one step |
-| Postgres | connected to API service | Tables created via `prisma db push` |
+| Marketing site (3D orbit, CMS) | ✅ | Single-page with Tailwind v4 |
+| Public ticketing flow | ✅ | Browse events → checkout → payment instructions → order lookup |
+| Admin login + dashboard | ✅ | NextAuth Credentials + JWT |
+| Admin event CRUD | ✅ | Create/edit/delete events + ticket tiers |
+| Admin order management | ✅ | View orders, mark paid/cancel/refund |
+| CMS global sync | ✅ | Save button publishes to API in one step |
+| Auto-seed admin user | ✅ | Creates on first boot via `prisma.ts` |
+| Docker builds | ✅ | node:20-slim builder, nginx:alpine runner |
 
 ---
 
@@ -43,14 +58,49 @@ Two-service monorepo for a ticketed-events product:
 | 2.14 | CSS cascade layer fix (@layer base/components) + Dockerfile fixes | ✓ | `9324ec0` |
 | 2.15 | CMS global sync via /api/content endpoint (single JSON blob) | ✓ | `c03206a` |
 | 2.16 | One-click CMS Save (local + global publish in one action) | ✓ | `9699f5c` |
-| 3 | SMS webhook with parser, HMAC, idempotency | pending | — |
-| 4 | PDF ticket generation + email delivery + WhatsApp deep link | pending | — |
-| 5 | Admin CRUD (events, tiers, orders, webhooks, manual verify) | **in progress** | — |
-| 6 | Android SMS forwarder setup guide at `/admin/help` | pending | — |
-| 7 | Hardening (rate limiting, error emails, Sentry, backups) | pending | — |
+| 2.17 | Docker build fix: node:20 for @tailwindcss/oxide + entrypoint for prisma db push | ✓ | `279befe`–`f8078d0` |
+| 2.18 | Auto-seed admin user on first startup | ✓ | `d65625a` |
+| 2.19 | Admin login redirect loop fix (layout.tsx bare render for unauth) | ✓ | `5cbfa83` |
+| 3 | SMS webhook with parser, HMAC, idempotency | **pending** | — |
+| 4 | PDF ticket generation + email delivery + WhatsApp deep link | **pending** | — |
+| 5 | Admin CRUD (events, tiers, orders) | ✓ | `9f7b88d` |
+| 5.1 | Event creation error handling + optional field transforms | ✓ | `c7dc438` |
+| 6 | Android SMS forwarder setup guide at `/admin/help` | **pending** | — |
+| 7 | Hardening (rate limiting, error emails, Sentry, backups) | **pending** | — |
 
 See `TICKETING_PLAN.md` for the original detailed design.
 See `RAILWAY_DEPLOY.md` for the deployment walkthrough.
+
+---
+
+## Remaining phases — what to build next
+
+### Phase 4: PDF tickets + email delivery (HIGHEST PRIORITY)
+**Why:** customers don't receive tickets after paying. This is the most impactful next step.
+**Stack already installed:** `pdf-lib`, `qrcode`, `resend`
+**Files to create:**
+- `lib/ticket-generator.ts` — generates PDF ticket with event details + QR code
+- `lib/email.ts` — sends ticket PDF via Resend
+- Hook into order `paid` transition in `lib/orders.ts` or `app/api/orders/route.ts`
+**Env vars needed:** `RESEND_API_KEY`, `EMAIL_FROM`
+
+### Phase 3: SMS payment webhook
+**Why:** currently payments require manual verification via admin panel.
+**Files to create:**
+- `lib/sms-parser.ts` — parses SMS text to extract reference + amount
+- `app/api/webhooks/sms-payment/route.ts` — receives webhook, matches order, marks paid
+- `lib/rate-limit.ts` — Upstash Redis rate limiting
+**Env vars needed:** `WEBHOOK_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+
+### Phase 6: Android SMS forwarder setup guide
+**Why:** supports Phase 3 — customers need an Android device to forward payment SMS to the webhook.
+**File to update:** `app/admin/help/page.tsx` (currently a stub)
+
+### Phase 7: Production hardening
+- Rate limiting on public endpoints
+- Error alerting (Sentry or similar)
+- Database backups
+- Monitoring
 
 ---
 
@@ -74,35 +124,41 @@ See `RAILWAY_DEPLOY.md` for the deployment walkthrough.
 ### 6. Payment providers abstracted to Fornax / Ventus
 **Why:** generic template, real names go in env vars and the `Event` table.
 
-### 7. `prisma migrate deploy` in the start command (not `db push`)
-**Why:** `db push` is for development. `migrate deploy` runs the migrations folder in production. We don't have a migrations folder yet — first deploy should `db push` once, then commit a baseline.
+### 7. `prisma db push` in the start command
+**Why:** used for initial setup. Future deploys should use `migrate deploy` once migrations are committed.
 
 ### 8. Obfuscation done in a single commit, not gradually
 **Why:** GitHub repo is public and the user wanted security-by-default. All brand/provider/country references replaced in one pass.
 
 ### 9. Force `DOCKERFILE` builder on Railway for the static site
-**Why:** the original `site/railway.json` had a `npx serve dist/ ...` start command. The `serve` package isn't in `site/package.json` and `npx` isn't in the Nixpacks runtime PATH. The site already has a working multi-stage Dockerfile, so we set `builder: DOCKERFILE`.
+**Why:** Nixpacks runtime doesn't include npx/prisma in PATH. The site already has a working multi-stage Dockerfile.
 
 ### 10. Add root-level Dockerfile as defense-in-depth for the monorepo
-**Why:** Railpack auto-detection scans the build context root. With no manifest there, it falls back to the Staticfile buildpack and fails. The root `Dockerfile` wraps `api/` so the API service can deploy even if `Root Directory` isn't set.
+**Why:** Railpack auto-detection scans the build context root. With no manifest there, it falls back to the Staticfile buildpack and fails.
 
 ### 11. nginx binds to `PORT` env var via envsubst
-**Why:** Railway assigns each service a `PORT` (default 8080). nginx defaults to port 80, so the healthcheck on `/` timed out. Standard fix: `listen ${PORT}` with envsubst at container start, plus `apk add gettext` for the `envsubst` binary.
+**Why:** Railway assigns each service a `PORT` (default 8080). nginx defaults to port 80, so the healthcheck on `/` timed out.
 
 ### 12. Mobile-first responsive header for the "Get Tickets" CTA
 **Why:** the inline header button crams the centered logo on small screens. Replaced with `md:flex` for the inline button and a `md:hidden` floating action button (FAB) at bottom-right for mobile.
 
 ### 13. Center logo with `inset-x-0 mx-auto w-fit` instead of `left-1/2 -translate-x-1/2`
-**Why:** the `.reveal` class sets `transform: translateY(0)` when visible, which overrides Tailwind's `-translate-x-1/2` (same specificity, later in cascade). The element ended up at `left: 50%` with no x-translate, so it was pushed right. `inset-x-0 mx-auto w-fit` centers without using transform.
+**Why:** the `.reveal` class sets `transform: translateY(0)` when visible, which overrides Tailwind's `-translate-x-1/2`.
 
 ### 14. Use Tailwind v4 via @tailwindcss/postcss (not the CDN)
-**Why:** the CDN runtime ships ~3 MB of JS that JIT-compiles classes in the browser, blocks the main thread, and prints a "should not be used in production" warning. The v4 PostCSS plugin + `@import "tailwindcss"` in the CSS file is the proper production setup. v4 replaces the JS `tailwind.config = {...}` pattern with CSS `@theme` directives.
+**Why:** the CDN runtime ships ~3 MB of JS that JIT-compiles classes in the browser, blocks the main thread, and prints a "should not be used in production" warning.
 
 ### 15. Echo the request Origin in CORS, not `*`
-**Why:** allows cookies/credentials to flow if ever needed, and works correctly behind CDNs/proxies that set Origin. We don't currently use credentials, but echoing is safer for future features.
+**Why:** allows cookies/credentials to flow if ever needed, and works correctly behind CDNs/proxies that set Origin.
 
-### 16. Make the orbit textures visible (gradient + shadow + groove opacity)
-**Why:** the original gradients had only ~5% color difference, vinyl grooves at 5% opacity, no drop shadow. On 95–125 px boxes this rendered as flat color squares. Enhanced to 25% gradient contrast, layered white highlight overlay, per-color vinyl rings at 18% opacity, top-edge inset highlight + drop shadow, truly concentric via `translate(-50%, -50%)`.
+### 16. Auto-seed admin user in prisma.ts
+**Why:** `prisma db seed` requires `npx` at runtime which isn't available in the Docker runner. Auto-seeding on first connection avoids the need for a separate seed step.
+
+### 17. Admin layout renders bare children for unauthenticated users
+**Why:** the previous layout called `redirect('/admin/login')` for all unauthenticated users — including those already on `/admin/login`, causing an infinite redirect loop.
+
+### 18. One-click CMS Save (local + global publish)
+**Why:** the previous two-button flow (Save locally → Publish to API) was confusing. Merged into a single "Save" button that does both actions.
 
 ---
 
@@ -110,76 +166,80 @@ See `RAILWAY_DEPLOY.md` for the deployment walkthrough.
 
 ### Issue 1: Prisma relation validation error
 **Symptom:** `The relation field 'orders' on model 'Event' is missing an opposite relation field on the model 'Order'.`
-**Fix:** removed direct `Event.orders`; orders accessed through `tier.event`. Admin events page counts via `tiers[]._count.orders`.
+**Fix:** removed direct `Event.orders`; orders accessed through `tier.event`.
 
 ### Issue 2: Middleware path resolution
 **Symptom:** `Module not found: Can't resolve './auth.config'`
 **Fix:** used the `@/server/auth.config` path alias.
 
-### Issue 3: TypeScript reject of `Event.orders` in include
-**Fix:** rolled into `tiers: { include: { _count: { select: { orders: true } } } }` and summed in the page.
-
-### Issue 4: Public layout didn't apply to root page
-**Fix:** moved all public pages into `src/app/(public)/`. Admin pages stayed at `src/app/admin/`.
-
-### Issue 5: Public layout used `headers()` for active nav state
-**Fix:** extracted nav into a client component (`PublicNav.tsx`) using `usePathname()`.
-
-### Issue 6: `site/` was an embedded git repo
-**Fix:** removed `site/.git/`, re-added as regular files.
-
-### Issue 7: Root gitignored assets swept into commit by `git add .`
-**Fix:** expanded `.gitignore` to ignore `*.pdf`, `*.zip`, `*.jpeg`, `*.png`, `*.gif`, `*.webp`, plus listed specific files and `site2/`.
+### Issue 3–7: Various build/deploy fixes
+See earlier entries in this file.
 
 ### Issue 8: Railway build fails with `Script start.sh not found`
-**Symptom:** Railpack scans the monorepo root, sees no `package.json`/`Dockerfile`/`start.sh`, falls back to Staticfile buildpack.
-**Fix (commits `057050a`, `00682d4`):**
-- Root `Dockerfile` (multi-stage wraps `api/`)
-- Root `start.sh` (defensive shell with helpful error)
-- Root `nixpacks.toml` + `railpack.json` (explicit build of `api/`)
-- `api/nixpacks.toml` + `api/railpack.json` (subdir versions)
-- `RAILWAY_DEPLOY.md` with three options: Root Directory = `api` / Root Directory = `.` / force Docker builder
+**Fix:** Root `Dockerfile` + `start.sh` + `nixpacks.toml` + `railpack.json`.
 
 ### Issue 9: Prisma `libssl.so.1.1: No such file or directory`
-**Fix (`00682d4`):** added `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` to `schema.prisma` (Alpine 3.18+ ships OpenSSL 3, not 1.1). `apk add --no-cache openssl` in all Docker stages as defense-in-depth.
+**Fix:** `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` in schema.
 
 ### Issue 10: `/repo/api/public: not found` in Docker build
-**Fix (`00682d4`):** created `api/public/.gitkeep`. Added `.dockerignore` (root) and `api/.dockerignore`.
+**Fix:** created `api/public/.gitkeep`.
 
 ### Issue 11: Static site deploy fails with `The executable 'npx' could not be found`
-**Fix (`094a08f`):** `site/railway.json` had a leftover `npx serve dist/ ...` start command. Changed `builder` to `DOCKERFILE`. The site's `Dockerfile` (node:18-alpine → nginx:alpine) handles everything.
+**Fix:** Changed `builder` to `DOCKERFILE` in `site/railway.json`.
 
-### Issue 12: Static site healthcheck on `/` fails with "service unavailable"
-**Symptom:** build succeeded, image pushed, but healthcheck times out on every retry.
-**Fix (`01272c9`):** nginx was listening on port 80 but Railway's healthcheck probes the `PORT` env var (default 8080). Updated `nginx.conf` to `listen ${PORT}`. Added `entrypoint.sh` that runs `envsubst` on the config at container start. Dockerfile: `apk add gettext`, `EXPOSE 8080`, `ENTRYPOINT` instead of `CMD`.
+### Issue 12: Static site healthcheck on `/` fails
+**Fix:** nginx binds to `$PORT` via envsubst.
 
-### Issue 13: CORS error: "Cross-Origin Request Blocked" on /api/site-config/publish
-**Symptom:** static site (custom domain) trying to PUT to API (different Railway host) — browser blocks the cross-origin request.
-**Fix (`6ce2646`):** new `src/lib/cors.ts` helper that echoes `Origin`, declares `GET, PUT, OPTIONS` methods, allows `Content-Type, X-Publish-Key` headers. `OPTIONS` handlers returning 204. CORS headers on every response (success + 4xx/5xx). Constant-time string compare for the publish secret.
+### Issue 13: CORS error on /api/site-config/publish
+**Fix:** `src/lib/cors.ts` helper echoes Origin, handles OPTIONS preflight.
 
-### Issue 14: cdn.tailwindcss.com should not be used in production
-**Symptom:** console warning + 57ms forced reflow because the CDN script JIT-compiles classes in the browser.
-**Fix (`2d8a47d`):** added `'@tailwindcss/postcss': {}` to `site/postcss.config.js` (was already in `package.json` but unused). `@import "tailwindcss"` + `@theme` block in `style.css`. Removed CDN script + inline `tailwind.config` from both HTMLs. `cms.js` now imports `./style.css` at the top so Vite picks it up.
+### Issue 14: cdn.tailwindcss.com in production
+**Fix:** Switched to `@tailwindcss/postcss` + `@import "tailwindcss"`.
 
-### Issue 15: Orbit boxes render as flat color blocks (no textures)
-**Symptom:** local server shows the 4 orbit boxes with no visible gradient/shadow/grooves — looks like flat squares.
-**Fix (`09b8379`):** gradients had only 5% contrast, vinyl grooves 5% opacity, no drop shadow. Enhanced to 25% gradient contrast, layered white highlight overlay, per-color vinyl rings at 18% opacity, top-edge inset highlight + drop shadow, vinyl rings centered via `translate(-50%,-50%)` for true concentricity.
+### Issue 15: Orbit boxes render as flat color blocks
+**Fix:** Enhanced gradients, shadows, vinyl grooves, concentric centering.
+
+### Issue 16: Tailwind CSS not applying in dev server
+**Symptom:** All Tailwind utility classes ignored, custom CSS worked.
+**Fix:** Custom CSS was unlayered, beating Tailwind's `@layer utilities` in cascade priority. Wrapped custom CSS in `@layer base` and `@layer components`.
+
+### Issue 17: Docker build fails — `Cannot find native binding`
+**Symptom:** `@tailwindcss/postcss` depends on `@tailwindcss/oxide` which requires Node 20+.
+**Fix:** Upgraded Dockerfile from `node:18-alpine` to `node:20-slim`.
+
+### Issue 18: CMS global sync doesn't work
+**Symptom:** Changes saved in CMS panel don't appear for other visitors.
+**Fix:** Two issues — (a) API URL was wrong (pointing to static site instead of API service), (b) localStorage was overriding remote config. Fixed by making remote config authoritative and using correct API URL.
+
+### Issue 19: `prisma db push` fails at runtime — "prisma: not found"
+**Symptom:** Nixpacks runner doesn't include npx/prisma in PATH.
+**Fix:** Created `entrypoint.sh` to run prisma before server start, or use `node ./node_modules/prisma/build/index.js` directly.
+
+### Issue 20: Admin login redirect loop (DOMException)
+**Symptom:** `Too many calls to Location or History APIs` + `DOMException: The operation is insecure`.
+**Fix:** Admin layout was calling `redirect('/admin/login')` for unauthenticated users — including when already on the login page. Fixed by rendering bare children when no session.
+
+### Issue 21: Event creation 500 error
+**Symptom:** POST to `/admin/events/new` returns 500.
+**Fix:** Added try/catch with error logging, NEXT_REDIRECT digest re-throw, empty-string-to-null transforms for optional fields, error display in form.
 
 ---
 
 ## Cross-service linking (now live)
 
 ### Static site → API
-Open the static site's `/cms.html` panel. In the **"Ticketing"** tab (newly added), scroll to the **"Publish to API (Global Sync)"** panel at the bottom:
-- **API Base URL** = API service public URL (e.g. `https://a-st-production.up.railway.app`)
-- **Publish Key** = value of `CMS_PUBLISH_SECRET` set in the API's Railway Variables
-- Click **"Publish to API"** — all CMS fields are saved to the database
-- Click **"Fetch Latest from API"** — pulls the team's shared config onto a new device
+The CMS panel (`/cms.html`) has a **Save** button that:
+1. Saves to localStorage (local browser)
+2. POSTs to `https://albumstudies.up.railway.app/api/content` (global)
 
-The static site's `main.js` calls `/api/site-config` on every page load and merges with localStorage. Remote wins for fields it has, localStorage wins for new local edits.
+Configure in **Ticketing** tab → **Publish Globally** panel:
+- **API Base URL:** `https://albumstudies.up.railway.app`
+- **Publish Key:** value of `CMS_PUBLISH_SECRET` env var
+
+The static site's `main.js` fetches `/api/content` on every page load (falls back to `cms-config.json`, then localStorage).
 
 ### API → Static site
-In the API service's Railway Variables, set `STATIC_SITE_URL` to the static site's URL. Used for the admin "View live site" link.
+In the API service's Railway Variables, set `STATIC_SITE_URL` to the static site's URL.
 
 ---
 
@@ -189,13 +249,13 @@ In the API service's Railway Variables, set `STATIC_SITE_URL` to the static site
 - TypeScript strict mode, no `any` unless unavoidable
 - Tailwind utility classes inline; shared component classes in `globals.css` (`@layer components`) for the API, in `style.css` for the static site
 - Server components by default; `'use client'` only when needed (forms, polling, nav with active state)
-- Prisma singleton in `lib/prisma.ts` to avoid hot-reload connection storms
+- Server actions in `admin/actions.ts` with try/catch + error returns
+- Prisma singleton in `lib/prisma.ts` (includes auto-seed)
 
 ### Git workflow
 - One commit per phase (or logical group within a phase)
 - `git add <specific paths>` not `git add .` (root has many untracked assets)
 - Commit message format: `Phase N: <summary>` for phase commits, `<type>: <summary>` for fixes
-- Avoid numbers in commit messages that look like pathspecs (e.g. "16 modules" gets parsed as a path)
 
 ### File layout
 ```
@@ -214,12 +274,12 @@ albumStudies/
 ├── site/                       ← Service 1 (static)
 │   ├── index.html              ← Tailwind via build (no CDN), 3D orbit, FAB
 │   ├── cms.html                ← CMS panel + global publish panel
-│   ├── main.js                 ← CMS hydration + load-time remote fetch
-│   ├── cms.js                  ← CMS editor, generic + custom renderers, publish panel
-│   ├── style.css               ← @import "tailwindcss" + @theme + orbit CSS
+│   ├── main.js                 ← CMS hydration + /api/content fetch
+│   ├── cms.js                  ← CMS editor, one-click save (local + API)
+│   ├── style.css               ← @import "tailwindcss" + @theme + @layer base/components
 │   ├── postcss.config.js
 │   ├── vite.config.js
-│   ├── Dockerfile              ← multi-stage: node:18-alpine → nginx:alpine
+│   ├── Dockerfile              ← multi-stage: node:20-slim → nginx:alpine
 │   ├── nginx.conf
 │   ├── entrypoint.sh           ← envsubst to bind nginx to $PORT
 │   ├── railway.json            ← builder: DOCKERFILE
@@ -239,37 +299,40 @@ albumStudies/
     │   │   │   ├── checkout/   # form + pending/[ref]
     │   │   │   └── order/      # lookup + [ref]
     │   │   ├── admin/
-    │   │   │   ├── layout.tsx
+    │   │   │   ├── layout.tsx  # bare render for unauth (no redirect loop)
+    │   │   │   ├── actions.ts  # server actions: event/tier/order CRUD
     │   │   │   ├── login/
     │   │   │   ├── dashboard/
-    │   │   │   ├── events/     # read-only list
-    │   │   │   ├── orders/     # read-only list
+    │   │   │   ├── events/     # list + new + [id] (CRUD)
+    │   │   │   ├── orders/     # list + [reference] (status mgmt)
     │   │   │   ├── webhooks/   # read-only log
     │   │   │   ├── manual-verify/
     │   │   │   └── help/       # Android setup guide (phase 6)
     │   │   ├── api/
     │   │   │   ├── auth/[...nextauth]/
+    │   │   │   ├── content/    # GET + POST (CMS global sync)
     │   │   │   ├── orders/     # POST + GET [ref]
     │   │   │   ├── site-config/# GET + PUT /publish
     │   │   │   └── webhooks/sms-payment/   # (phase 3)
     │   │   ├── globals.css
     │   │   └── layout.tsx
     │   ├── components/
-    │   │   ├── public/         # public components
-    │   │   └── admin/          # admin components
+    │   │   ├── public/
+    │   │   └── admin/
     │   ├── lib/
-    │   │   ├── prisma.ts
+    │   │   ├── prisma.ts       # singleton + auto-seed admin user
     │   │   ├── orders.ts
     │   │   ├── reference.ts
     │   │   ├── format.ts
     │   │   ├── whatsapp.ts
-    │   │   └── cors.ts         # CORS headers + preflight handler
+    │   │   └── cors.ts
     │   └── server/
-    │       ├── auth.ts
-    │       └── auth.config.ts
+    │       ├── auth.ts         # trustHost: true
+    │       └── auth.config.ts  # trustHost: true
+    ├── entrypoint.sh           # runs prisma db push before server
     ├── nixpacks.toml
-    ├── railpack.json
-    ├── Dockerfile              ← multi-stage: node:20-alpine → standalone Next.js
+    ├── railway.json            # builder: DOCKERFILE
+    ├── Dockerfile              # node:20-slim, copies prisma binaries
     ├── .dockerignore
     └── package.json
 ```
@@ -283,26 +346,28 @@ albumStudies/
 3. **Read `RAILWAY_DEPLOY.md`** if anything deploy-related is broken.
 4. **Check `git log --oneline`** to see the commit history.
 5. **Run `cd api && npm install && npm run build`** — if this passes, the code is good.
-6. **For phase 3 (webhook):** start with `lib/sms-parser.ts`, then `src/app/api/webhooks/sms-payment/route.ts`, then add `lib/rate-limit.ts` for Upstash.
-7. **For phase 4 (ticket PDF):** `lib/ticket-generator.ts` (pdf-lib), `lib/email.ts` (Resend), hook into the order `paid` transition.
-8. **For phase 5 (admin CRUD):** mostly forms + server actions. Use `revalidatePath('/admin/events')` after mutations.
+6. **Phase 4 (NEXT):** PDF tickets + email. Create `lib/ticket-generator.ts` (pdf-lib + qrcode), `lib/email.ts` (Resend), hook into order paid transition. Test with a real order.
+7. **Phase 3:** SMS webhook. Create `lib/sms-parser.ts`, `app/api/webhooks/sms-payment/route.ts`, `lib/rate-limit.ts`.
+8. **Phase 6:** Fill in `app/admin/help/page.tsx` with Android SMS forwarder setup guide.
+9. **Phase 7:** Rate limiting, Sentry, backups.
 
 ---
 
 ## Known gotchas
 
-- **Prisma on Alpine:** `binaryTargets` must include `linux-musl-openssl-3.0.x`. `apk add openssl` in Dockerfiles as defense-in-depth.
+- **Prisma on Alpine:** `binaryTargets` must include `linux-musl-openssl-3.0.x`. `apk add openssl` in Dockerfiles.
 - **`prisma db push` vs `migrate deploy`:** v1 used `db push`. Future deploys need committed migrations.
-- **Public layout must be inside `(public)/`:** Next.js route groups only apply to nested pages. New public page at `app/foo/page.tsx` won't get the header/footer — move to `app/(public)/foo/page.tsx`.
+- **Public layout must be inside `(public)/`:** Next.js route groups only apply to nested pages.
 - **`force-dynamic` on DB pages:** don't remove or you cache order state in the public CDN.
-- **Payment provider names (`Fornax`, `Ventus`) and `priceUGX` field name are placeholders.** Find-replace on real deployment.
-- **Static `site/` still uses localStorage CMS** (plus the new global sync via API). Don't try to unify fully in v1.
-- **`prisma seed` logs the default password.** Override with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`. **Rotate after first login.**
-- **`site2/` is a backup/duplicate.** It's gitignored but you may want to delete it from disk.
-- **Static `site/railway.json` must use `DOCKERFILE` builder.** Don't use Nixpacks unless `serve` is in `site/package.json`.
-- **Static site uses Tailwind via build, not CDN.** v4 PostCSS plugin + `@theme` in CSS. CDN will throw console warnings.
-- **Orbit CSS textures are subtle by design at small sizes.** They become visible at 95+ px due to the layered gradients + shadows.
-- **Center `position: absolute` elements without using `-translate-x-1/2` if any parent has `.reveal`** — the reveal class overrides transforms.
+- **Payment provider names (`Fornax`, `Ventus`) are placeholders.** Find-replace on real deployment.
+- **Static `site/` uses localStorage CMS + API sync.** Don't try to unify fully in v1.
+- **Admin auto-seed:** runs on first server start. Override with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` env vars. **Rotate after first login.**
+- **`site2/` is a backup/duplicate.** Gitignored.
+- **Static site must use `DOCKERFILE` builder.** Nixpacks doesn't work for the static site.
+- **Tailwind v4 uses `@layer base/components`** for custom CSS — unlayered CSS beats layered utilities.
+- **NextAuth `trustHost: true`** is required in both `auth.ts` and `auth.config.ts`.
+- **Admin layout must not redirect unauthenticated users** from `/admin/login` — causes infinite loop.
+- **Server actions that call `redirect()`** must re-throw `NEXT_REDIRECT` digest errors.
 
 ---
 
@@ -312,14 +377,17 @@ albumStudies/
 ```
 DATABASE_URL                  (auto-set by Railway Postgres plugin)
 NEXTAUTH_SECRET               (openssl rand -base64 32)
-NEXTAUTH_URL                  (e.g. https://api.your-domain.com)
-WEBHOOK_SECRET                (openssl rand -base64 32)
+NEXTAUTH_URL                  (https://albumstudies.up.railway.app)
+AUTH_TRUST_HOST               (true — required for NextAuth on Railway)
 CMS_PUBLISH_SECRET            (openssl rand -base64 32, for static site sync)
-RESEND_API_KEY                (re_xxx from resend.com)
-EMAIL_FROM                    (e.g. "Quaestor Favillae <noreply@your-domain.com>")
-UPSTASH_REDIS_REST_URL        (from upstash.com)
-UPSTASH_REDIS_REST_TOKEN      (from upstash.com)
-STATIC_SITE_URL               (https://your-domain.com)
+SEED_ADMIN_EMAIL              (admin email for auto-seed, default: admin@example.com)
+SEED_ADMIN_PASSWORD           (admin password for auto-seed, default: change-me-immediately-1234)
+WEBHOOK_SECRET                (openssl rand -base64 32, phase 3)
+RESEND_API_KEY                (re_xxx from resend.com, phase 4)
+EMAIL_FROM                    (e.g. "Quaestor Favillae <noreply@your-domain.com>", phase 4)
+UPSTASH_REDIS_REST_URL        (from upstash.com, phase 3/7)
+UPSTASH_REDIS_REST_TOKEN      (from upstash.com, phase 3/7)
+STATIC_SITE_URL               (https://album-studies.up.railway.app)
 FORNAX_MERCHANT_CODE          (the actual merchant code on real deploy)
 VENTUS_NUMBER                 (the actual phone on real deploy)
 PAYMENT_SUPPORT_PHONE         (the WhatsApp support number)
@@ -328,8 +396,8 @@ PAYMENT_SUPPORT_PHONE         (the WhatsApp support number)
 ### Static site (site service)
 - `Root Directory`: `site`
 - `Watch Paths`: `site/**`
-- `Builder`: `Dockerfile` (auto-detected from `site/railway.json`)
-- No env vars needed (it's pure static)
+- `Builder`: `Dockerfile`
+- No env vars needed (pure static)
 
 ---
 
@@ -340,18 +408,17 @@ PAYMENT_SUPPORT_PHONE         (the WhatsApp support number)
 | Next.js 14 App Router | file-system routing, server components, server actions |
 | Prisma 5 | type-safe DB, needs Alpine-compatible binaryTargets |
 | NextAuth v5 (beta) | admin auth with Credentials + JWT |
-| Resend | transactional email, DKIM signed, free tier |
-| Upstash Redis | serverless Redis for rate limiting (free tier) |
-| pdf-lib | server-side PDF ticket generation |
-| qrcode | QR code payloads for tickets |
-| Tailwind v4 (api) | build-time CSS, @theme block |
-| Tailwind v4 (site) | build-time CSS via @tailwindcss/postcss plugin |
-| Vite 5 (site) | static site bundler |
-| nginx (alpine) | static site runtime, binds to $PORT via envsubst |
-| bcryptjs | password hashing (no native build issues) |
+| Resend | transactional email (phase 4) |
+| Upstash Redis | rate limiting (phase 3/7) |
+| pdf-lib | server-side PDF ticket generation (phase 4) |
+| qrcode | QR code payloads for tickets (phase 4) |
+| Tailwind v4 | build-time CSS via @tailwindcss/postcss |
+| Vite 5 | static site bundler |
+| nginx (alpine) | static site runtime |
+| bcryptjs | password hashing |
 | zod | request validation |
 | Railway | hosting + Postgres plugin |
-| GitHub | source control (obfuscated public view) |
+| GitHub | source control |
 
 ---
 
@@ -360,14 +427,22 @@ PAYMENT_SUPPORT_PHONE         (the WhatsApp support number)
 - ✗ Don't use the Tailwind CDN script in production
 - ✗ Don't use Nixpacks for the static site (use Dockerfile)
 - ✗ Don't use `prisma db push` in production (use migrate deploy)
-- ✗ Don't reference env-var-baked values in static JSON files (e.g. railway.json)
+- ✗ Don't reference env-var-baked values in static JSON files
 - ✗ Don't forget `force-dynamic` on pages that hit the DB
 - ✗ Don't trust `-translate-x-1/2` on elements with `.reveal`
-- ✗ Don't bind nginx to port 80 on Railway (use $PORT via envsubst)
+- ✗ Don't bind nginx to port 80 on Railway (use $PORT)
 - ✗ Don't skip the CORS preflight handler
 - ✗ Don't use `*` for CORS if you ever need credentials
-- ✗ Don't let git embed an inner `.git` directory inside a tracked folder
+- ✗ Don't let git embed an inner `.git` directory
+- ✗ Don't use Nixpacks for the API if you need prisma CLI at runtime
+- ✗ Don't redirect unauthenticated users from the login page itself
+- ✗ Don't use `npx` in Dockerfile CMD — it's not in PATH at runtime
+- ✗ Don't forget `trustHost: true` in NextAuth config for Railway
+- ✗ Don't put unlayered CSS above Tailwind's `@layer utilities`
 - ✓ Do pin the OpenSSL binary target in Prisma schema for Alpine
-- ✓ Do create `public/.gitkeep` for Next.js apps even if empty
+- ✓ Do create `public/.gitkeep` for Next.js apps
 - ✓ Do make textures pronounced — subtle doesn't read on small elements
-- ✓ Do provide a defensive fallback (`start.sh`, `railway.json` at root) for monorepos
+- ✓ Do provide defensive fallbacks (`start.sh`, `railway.json` at root)
+- ✓ Do auto-seed admin users in code (not via `prisma db seed` at runtime)
+- ✓ Do use try/catch in server actions with NEXT_REDIRECT re-throw
+- ✓ Do wrap optional form fields with `.transform(v => v || null)` in Zod
