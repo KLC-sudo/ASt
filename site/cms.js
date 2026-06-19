@@ -770,9 +770,16 @@ function renderGalleryTab() {
                     </h3>
                     <p class="text-[11px] text-white/40 mt-0.5">Scroll horizontally to browse frames. Frame scans cycle at 180ms intervals.</p>
                 </div>
-                <button type="button" id="btn-add-slide" class="py-2 px-4 rounded-xl bg-mustard/15 border border-mustard/20 hover:bg-mustard/30 text-xs font-bold text-mustard transition-all flex items-center gap-1.5 uppercase tracking-wider">
-                    + Add Frame
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btn-multi-upload" class="py-2 px-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/60 hover:text-offwhite transition-all flex items-center gap-1.5 uppercase tracking-wider">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/></svg>
+                        Multi Upload
+                    </button>
+                    <input type="file" id="multi-upload-input" class="hidden" accept="image/*" multiple>
+                    <button type="button" id="btn-add-slide" class="py-2 px-4 rounded-xl bg-mustard/15 border border-mustard/20 hover:bg-mustard/30 text-xs font-bold text-mustard transition-all flex items-center gap-1.5 uppercase tracking-wider">
+                        + Add Frame
+                    </button>
+                </div>
             </div>
 
             <!-- Horizontal Scroll Container -->
@@ -989,6 +996,59 @@ function renderGalleryTab() {
             list.push({ indexTag: defaultIndex, subTitle: defaultSub, title: defaultTitle, image: "" });
             renderGalleryTab();
             showToast(`New frame successfully added to the timeline!`, "✨");
+        });
+    }
+
+    // 12. Multi-upload: select multiple images, each becomes a new frame
+    const btnMultiUpload = document.getElementById('btn-multi-upload');
+    const multiUploadInput = document.getElementById('multi-upload-input');
+    if (btnMultiUpload && multiUploadInput) {
+        btnMultiUpload.addEventListener('click', function(e) {
+            e.preventDefault();
+            multiUploadInput.click();
+        });
+
+        multiUploadInput.addEventListener('change', async function(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            // Save card fields before re-render
+            const titleField = document.getElementById('card-title-field');
+            const descField = document.getElementById('card-desc-field');
+            const indexTagField = document.getElementById('card-indexTag-field');
+            const subTitleField = document.getElementById('card-subTitle-field');
+            const headlineField = document.getElementById('card-headline-field');
+            if (titleField) stagedConfig.gallery.cards[selectedCardIdx].title = titleField.value;
+            if (descField) stagedConfig.gallery.cards[selectedCardIdx].description = descField.value;
+            if (indexTagField) stagedConfig.gallery.cards[selectedCardIdx].indexTag = indexTagField.value;
+            if (subTitleField) stagedConfig.gallery.cards[selectedCardIdx].subTitle = subTitleField.value;
+            if (headlineField) stagedConfig.gallery.cards[selectedCardIdx].headline = headlineField.value;
+
+            const list = stagedConfig.gallery.cards[selectedCardIdx].slides;
+            let processed = 0;
+
+            for (const file of files) {
+                try {
+                    showToast(`Processing image ${processed + 1} of ${files.length}…`, "⏳");
+                    const dataUrl = await compressAndConvertImage(file, 600, 0.75);
+                    list.push({
+                        indexTag: `STUDY // 00${selectedCardIdx + 1}`,
+                        subTitle: `SIGNAL // ${String(processed + 1).padStart(2, '0')}`,
+                        title: `FRAME AT ${list.length + 1}`,
+                        image: dataUrl
+                    });
+                    processed++;
+                } catch (err) {
+                    console.error('[CMS] Multi-upload compress error:', err);
+                    showToast(`Failed to process "${file.name}". Skipping.`, "⚠️");
+                }
+            }
+
+            // Reset input so the same files can be selected again
+            multiUploadInput.value = '';
+
+            renderGalleryTab();
+            showToast(`${processed} of ${files.length} images added as new frames!`, "🖼️");
         });
     }
 }
