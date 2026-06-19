@@ -23,6 +23,12 @@ function loadLocalConfig() {
 document.addEventListener('DOMContentLoaded', async () => {
     // ── CMS DATA APPLIER ──────────────────────────────────
     // Shared function: applies CMS data to all [data-cms] elements + gallery rebuild
+    let revealObserver;
+    function observeReveals() {
+        document.querySelectorAll('.reveal:not(.visible), .line-reveal:not(.visible)').forEach(el => {
+            revealObserver.observe(el);
+        });
+    }
     function applyCMSData(data) {
         if (!data) return;
         const getVal = (obj, path) =>
@@ -146,8 +152,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── CMS HYDRATION ENGINE ─────────────────────────────
     // Priority: localStorage (instant) → API (background update)
+
+    // Scroll reveal intersections observer — created BEFORE any applyCMSData calls
+    revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
     const localData = loadLocalConfig();
-    if (localData) applyCMSData(localData);
+    if (localData) {
+        applyCMSData(localData);
+        observeReveals();
+    }
 
     // Background: fetch from API, update silently if data differs
     fetchFromAPI().then(apiData => {
@@ -156,22 +176,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const apiJSON = JSON.stringify(apiData);
         if (apiJSON !== localJSON) {
             applyCMSData(apiData);
+            observeReveals();
             // Persist to localStorage so next load is also instant
             try { localStorage.setItem('albumStudiesCMSData', apiJSON); } catch {}
         }
     });
-
-    // Scroll reveal intersections observer
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-
-    document.querySelectorAll('.reveal, .line-reveal').forEach(el => observer.observe(el));
 
     // Reveal elements in the first section immediately
     setTimeout(() => {
