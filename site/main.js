@@ -12,15 +12,6 @@ async function fetchFromAPI() {
     } catch { return null; }
 }
 
-async function fetchFromStaticFile() {
-    try {
-        const res = await fetch('./cms-config.json', { cache: 'no-store' });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.config || data || null;
-    } catch { return null; }
-}
-
 function loadLocalConfig() {
     try {
         const raw = localStorage.getItem('albumStudiesCMSData');
@@ -30,13 +21,9 @@ function loadLocalConfig() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // ── CMS HYDRATION ENGINE ─────────────────────────────
-    // Priority: API → static cms-config.json → localStorage
-    await (async function hydrateCMSData() {
-        let data = await fetchFromAPI();
-        if (!data) data = await fetchFromStaticFile();
-        if (!data) data = loadLocalConfig();
-
+    // ── CMS DATA APPLIER ──────────────────────────────────
+    // Shared function: applies CMS data to all [data-cms] elements + gallery rebuild
+    function applyCMSData(data) {
         if (!data) return;
         const getVal = (obj, path) =>
             path.split('.').reduce((acc, key) => {
@@ -155,7 +142,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 }
             }
-    })();
+    }
+
+    // ── CMS HYDRATION ENGINE ─────────────────────────────
+    // Priority: localStorage (instant) → API (background update)
+    const localData = loadLocalConfig();
+    if (localData) applyCMSData(localData);
+
+    // Background: fetch from API, update silently if data differs
+    fetchFromAPI().then(apiData => {
+        if (!apiData) return;
+        const localJSON = localData ? JSON.stringify(localData) : '';
+        const apiJSON = JSON.stringify(apiData);
+        if (apiJSON !== localJSON) {
+            applyCMSData(apiData);
+            // Persist to localStorage so next load is also instant
+            try { localStorage.setItem('albumStudiesCMSData', apiJSON); } catch {}
+        }
+    });
 
     // Scroll reveal intersections observer
     const observer = new IntersectionObserver((entries) => {
