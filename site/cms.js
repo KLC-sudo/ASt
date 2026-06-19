@@ -10,7 +10,9 @@ const DEFAULTS = {
     },
     header: {
         ctaText: "Get Tickets",
-        ctaUrl: "https://your-api.example.com/events"
+        ctaUrl: "https://your-api.example.com/events",
+        findUsText: "Find Us",
+        findUsUrl: "#mission"
     },
     hero: {
         titleLine1: "QUAESTOR",
@@ -236,7 +238,9 @@ const TABS_SCHEMA = {
                 name: "Header Call-to-Action",
                 fields: [
                     { path: "header.ctaText", label: "Header Button Text (e.g. 'Get Tickets')", type: "text" },
-                    { path: "header.ctaUrl", label: "Header Button URL (link to your API/events service)", type: "text" }
+                    { path: "header.ctaUrl", label: "Header Button URL (link to your API/events service)", type: "text" },
+                    { path: "header.findUsText", label: "Find Us Button Text", type: "text" },
+                    { path: "header.findUsUrl", label: "Find Us Button URL (e.g. Google Maps link)", type: "text" }
                 ]
             },
             {

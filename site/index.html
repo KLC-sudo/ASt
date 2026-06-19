@@ -18,7 +18,11 @@
 
         <!-- Header / Navigation Bar -->
         <header class="absolute top-0 left-0 w-full px-6 md:px-12 lg:px-20 py-8 flex justify-center md:justify-between items-center z-30">
-            <div class="hidden md:block w-32"></div>
+            <div class="hidden md:flex w-32 justify-start">
+                <a data-cms-href="header.findUsUrl" href="#mission" class="text-[10px] tracking-[0.25em] uppercase text-graphite/70 border border-graphite/20 px-4 py-2 hover:border-mustard/60 hover:text-mustard transition-colors duration-300 whitespace-nowrap">
+                    <span data-cms="header.findUsText">Find Us</span>
+                </a>
+            </div>
             <!-- Stacked Aicon Title -->
             <div class="flex flex-col leading-none text-center">
                 <h1 data-cms="hero.titleLine1" class="landing-stacked-title">QUAESTOR</h1>
@@ -30,6 +34,11 @@
                 </a>
             </div>
         </header>
+
+        <!-- Mobile FAB (floating action button) — find us -->
+        <a data-cms-href="header.findUsUrl" href="#mission" class="md:hidden fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-graphite text-offwhite flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-transform" aria-label="Find us">
+            <span data-cms="header.findUsText" class="text-[10px] tracking-[0.15em] uppercase font-semibold">Find Us</span>
+        </a>
 
         <!-- Mobile FAB (floating action button) — tickets CTA -->
         <a data-cms-href="header.ctaUrl" href="https://your-api.example.com/events" class="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-mustard text-graphite flex items-center justify-center shadow-[0_4px_20px_rgba(200,160,62,0.4)] hover:scale-105 active:scale-95 transition-transform" aria-label="Get tickets">
